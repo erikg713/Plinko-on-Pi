@@ -1,40 +1,100 @@
-// Leaderboard route
-app.get("/leaderboard", async (req, res) => {
-  try {
-    // Top 10 players by winnings
-    const leaders = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
-
-    res.json(leaders);
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+// backend/server.js
 
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { verifyPayment, completePayment } = require("./payments");
 const { PORT } = require("./config");
+const Bet = require("./models/Bet"); // Ensure Bet model is imported
 
 const app = express();
+
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// Simple route
+// Health check route
 app.get("/", (req, res) => {
   res.send("✅ Plinko Backend Running");
 });
 
-// Handle Pi payment callback
+// Leaderboard route: Returns top 10 players by total winnings
+app.get("/leaderboard", async (req, res) => {
+  try {
+    const leaders = await Bet.aggregate([
+      {
+        $group: {
+          _id: "$user",
+          totalWinnings: { $sum: "$winnings" }
+        }
+      },
+      { $sort: { totalWinnings: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Optionally, map the response for clarity
+    const formattedLeaders = leaders.map((entry, idx) => ({
+      rank: idx + 1,
+      user: entry._id,
+      totalWinnings: +entry.totalWinnings.toFixed(4)
+    }));
+
+    res.json(formattedLeaders);
+  } catch (err) {
+    console.error("Leaderboard error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Pi payment webhook handler
 app.post("/payment-webhook", async (req, res) => {
   try {
     const { paymentId, txid, user, betAmount, multiplier } = req.body;
+    if (!paymentId || !txid || !user || !betAmount || !multiplier) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
+    console.log("💰 Payment received:", paymentId);
+
+    // Verify payment status from Pi API
+    const payment = await verifyPayment(paymentId);
+
+    if (!payment || payment.status !== "completed") {
+      return res.status(400).json({ error: "Invalid or incomplete payment" });
+    }
+
+    // Calculate winnings (5% house edge)
+    const winnings = Number((betAmount * multiplier * 0.95).toFixed(4));
+    const houseEdge = Number((betAmount - winnings).toFixed(4));
+
+    console.log(`🎉 User ${user} won ${winnings} Pi!`);
+    console.log(`🏦 House kept ${houseEdge} Pi.`);
+
+    // Complete the payment
+    await completePayment(paymentId, txid);
+
+    // Log the bet in the database for leaderboard tracking
+    await Bet.create({
+      user,
+      betAmount,
+      multiplier,
+      winnings,
+      txid,
+      paymentId,
+      createdAt: new Date()
+    });
+
+    res.json({ success: true, winnings });
+  } catch (err) {
+    console.error("Payment webhook error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`🚀 Backend running on port ${PORT}`);
+});
     console.log("💰 Payment received:", paymentId);
 
     // Verify with Pi API
