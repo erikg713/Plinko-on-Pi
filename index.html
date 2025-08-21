@@ -5,10 +5,12 @@
   <title>Plinko on Pi</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script src="libs/matter.min.js"></script>
 </head>
 <body>
   <h1>🎰 Plinko on Pi</h1>
   <button id="loginBtn">Login with Pi</button>
+
   <div id="gameArea" style="display:none;">
     <h2>Drop a Ball</h2>
     <p>Bet Amount: <input type="number" id="betAmount" value="1" min="1"> Pi</p>
@@ -16,6 +18,7 @@
     <canvas id="plinkoCanvas" width="600" height="800"></canvas>
     <p id="result"></p>
   </div>
+
   <script src="plinko.js"></script>
   <script src="app.js"></script>
 </body>
