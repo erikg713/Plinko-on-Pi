@@ -89,3 +89,31 @@ async function loadLeaderboard() {
 // Refresh leaderboard on load and every 60s
 loadLeaderboard();
 setInterval(loadLeaderboard, 60000);
+async function loginWithPi() {
+  try {
+    const user = await Pi.authenticate(["username", "payments", "profile"], onIncompletePaymentFound);
+
+    // Send to backend for verification
+    const res = await fetch("https://yourbackend.com/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(user)
+    });
+
+    const result = await res.json();
+
+    if (result.allowed) {
+      document.getElementById("userInfo").innerHTML = 
+        `✅ Welcome, ${result.username} (KYC: ${result.kyc ? "Verified" : "Unverified"})`;
+    } else {
+      document.getElementById("userInfo").innerHTML = 
+        `❌ Access denied. You must complete Pi KYC to play.`;
+    }
+
+  } catch (err) {
+    console.error("Login failed:", err);
+    alert("Login error, please try again.");
+  }
+}
+
+document.getElementById("loginBtn").addEventListener("click", loginWithPi);
