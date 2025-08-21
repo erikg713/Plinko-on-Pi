@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Plinko Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📊 Plinko Admin Dashboard</h1>
+  </header>
+
+  <main>
+    <section class="metrics">
+      <div class="card">
+        <h2>Total Bets</h2>
+        <p id="totalBets">0</p>
+      </div>
+      <div class="card">
+        <h2>Total Wagered (Pi)</h2>
+        <p id="totalWagered">0</p>
+      </div>
+      <div class="card">
+        <h2>Total Payouts (Pi)</h2>
+        <p id="totalPayouts">0</p>
+      </div>
+      <div class="card profit">
+        <h2>Profit (House Edge)</h2>
+        <p id="totalProfit">0</p>
+      </div>
+    </section>
+
+    <section class="recent">
+      <h2>🎲 Recent Bets</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Bet (Pi)</th>
+            <th>Multiplier</th>
+            <th>Winnings (Pi)</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="recentBets"></tbody>
+      </table>
+    </section>
+
+    <section class="leaderboard">
+      <h2>🏆 Leaderboard</h2>
+      <ol id="leaderboardList"></ol>
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
