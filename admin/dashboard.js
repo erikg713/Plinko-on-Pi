@@ -38,4 +38,8 @@ async function fetchDashboard() {
 
 // Refresh every 30s
 fetchDashboard();
+setInterval(fetchDashboard, 30000);}
+
+// Refresh every 30s
+fetchDashboard();
 setInterval(fetchDashboard, 30000);
