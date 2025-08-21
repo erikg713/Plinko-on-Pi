@@ -1,0 +1,23 @@
+.leaderboard {
+  margin: 20px auto;
+  max-width: 500px;
+  background: #1c1c1c;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #f0db4f;
+  text-align: left;
+}
+
+.leaderboard h2 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.leaderboard ol {
+  padding-left: 20px;
+}
+
+.leaderboard li {
+  margin: 5px 0;
+  font-weight: bold;
+}
