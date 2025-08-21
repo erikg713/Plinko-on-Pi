@@ -61,4 +61,31 @@ table th, table td {
   padding: 8px;
   border-bottom: 1px solid #444;
   text-align: center;
+}.card h2 {
+  margin-bottom: 10px;
+}
+
+.card.profit {
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+
+.recent, .leaderboard {
+  margin: 20px;
+  background: #1c1c1c;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #f0db4f;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th, table td {
+  padding: 8px;
+  border-bottom: 1px solid #444;
+  text-align: center;
 }
