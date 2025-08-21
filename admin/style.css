@@ -1,0 +1,64 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #0d0d0d;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #111;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 2px solid #222;
+}
+
+header h1 {
+  margin: 0;
+  color: #f0db4f;
+}
+
+.metrics {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px;
+}
+
+.card {
+  background: #1c1c1c;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid #f0db4f;
+  text-align: center;
+  flex: 1;
+  margin: 0 10px;
+}
+
+.card h2 {
+  margin-bottom: 10px;
+}
+
+.card.profit {
+  background: #2ecc71;
+  color: black;
+  font-weight: bold;
+}
+
+.recent, .leaderboard {
+  margin: 20px;
+  background: #1c1c1c;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #f0db4f;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th, table td {
+  padding: 8px;
+  border-bottom: 1px solid #444;
+  text-align: center;
+}
