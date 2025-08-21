@@ -1,6 +1,7 @@
 let user = null;
+setupPlinko();
 
-// Initialize Pi SDK
+// Init Pi SDK
 Pi.init({ version: "2.0" });
 
 document.getElementById("loginBtn").addEventListener("click", async () => {
@@ -8,19 +9,20 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
     user = await Pi.authenticate(["username", "payments"], onIncompletePaymentFound);
     document.getElementById("loginBtn").style.display = "none";
     document.getElementById("gameArea").style.display = "block";
-    console.log("Logged in as:", user);
+    console.log("Logged in:", user);
   } catch (err) {
     console.error("Login failed", err);
   }
 });
 
-async function onIncompletePaymentFound(payment) {
+function onIncompletePaymentFound(payment) {
   console.log("Incomplete payment:", payment);
 }
 
 document.getElementById("playBtn").addEventListener("click", async () => {
   const betAmount = parseFloat(document.getElementById("betAmount").value);
 
+  // Request Pi Payment
   try {
     const payment = await Pi.createPayment({
       amount: betAmount,
@@ -33,8 +35,30 @@ document.getElementById("playBtn").addEventListener("click", async () => {
       onError: (error, paymentId) => console.error("Error:", error, paymentId)
     });
 
-    // Once payment is confirmed → Run game
-    const multiplier = playPlinko();
+    // Run Physics Game
+    dropBall((multiplier) => {
+      const winnings = betAmount * multiplier * 0.95; // 5% house edge
+      document.getElementById("result").innerText =
+        `Ball landed on x${multiplier} → You won ${winnings.toFixed(2)} Pi!`;
+
+      // Send to backend
+      fetch("https://yourbackend.com/payment-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentId: payment.identifier,
+          txid: payment.transaction.txid,
+          user: user.username,
+          betAmount,
+          multiplier
+        })
+      });
+    });
+
+  } catch (err) {
+    console.error("Payment failed", err);
+  }
+});    const multiplier = playPlinko();
     const winnings = betAmount * multiplier * 0.95; // 5% house edge
     document.getElementById("result").innerText = 
       `Ball landed on x${multiplier} → You won ${winnings.toFixed(2)} Pi!`;
