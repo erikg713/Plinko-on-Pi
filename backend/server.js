@@ -123,3 +123,33 @@ app.listen(PORT, () => {
 app.listen(PORT, () => {
   console.log(`🚀 Backend running on port ${PORT}`);
 });
+// Admin dashboard metrics (secure this with API key or JWT)
+app.get("/admin/metrics", async (req, res) => {
+  try {
+    const totalBets = await Bet.countDocuments();
+    const totalWagered = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$betAmount" } } }]);
+    const totalPayouts = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$winnings" } } }]);
+
+    const recentBets = await Bet.find().sort({ timestamp: -1 }).limit(10);
+
+    const leaderboard = await Bet.aggregate([
+      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
+      { $sort: { totalWinnings: -1 } },
+      { $limit: 10 }
+    ]);
+
+    const profit = (totalWagered[0]?.total || 0) - (totalPayouts[0]?.total || 0);
+
+    res.json({
+      totalBets,
+      totalWagered: totalWagered[0]?.total || 0,
+      totalPayouts: totalPayouts[0]?.total || 0,
+      profit,
+      recentBets,
+      leaderboard
+    });
+  } catch (err) {
+    console.error("Admin metrics error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
