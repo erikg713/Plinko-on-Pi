@@ -68,3 +68,24 @@ document.getElementById("playBtn").addEventListener("click", async () => {
     console.error("Payment failed", err);
   }
 });
+async function loadLeaderboard() {
+  try {
+    const res = await fetch("https://yourbackend.com/leaderboard");
+    const data = await res.json();
+
+    const list = document.getElementById("leaderboardList");
+    list.innerHTML = "";
+
+    data.forEach((player, index) => {
+      let li = document.createElement("li");
+      li.textContent = `${player._id} — ${player.totalWinnings.toFixed(2)} Pi`;
+      list.appendChild(li);
+    });
+  } catch (err) {
+    console.error("Leaderboard fetch error:", err);
+  }
+}
+
+// Refresh leaderboard on load and every 60s
+loadLeaderboard();
+setInterval(loadLeaderboard, 60000);
