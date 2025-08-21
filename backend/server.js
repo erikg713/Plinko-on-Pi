@@ -1,3 +1,20 @@
+// Leaderboard route
+app.get("/leaderboard", async (req, res) => {
+  try {
+    // Top 10 players by winnings
+    const leaders = await Bet.aggregate([
+      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
+      { $sort: { totalWinnings: -1 } },
+      { $limit: 10 }
+    ]);
+
+    res.json(leaders);
+  } catch (err) {
+    console.error("Leaderboard error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
