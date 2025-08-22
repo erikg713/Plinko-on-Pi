@@ -2,10 +2,15 @@
 
 import { drawPegs, pegs, pegRadius, prizes } from './board.js';
 import { ball, ballRadius, drawBall } from './ball.js';
+import { updateHighScores } from './main.js'; // Import the new high-score function
 
 let isPlaying = false;
 let score = 0;
 let playButton, messageArea, piBalanceP;
+
+// Create audio objects for sound effects
+const plinkSound = new Audio('sounds/plink.wav'); // Be sure to create a 'sounds' folder and add your files
+const winSound = new Audio('sounds/win.mp3');
 
 // Function to handle what happens when the ball reaches the bottom
 function handleEndOfGame(canvas) {
@@ -19,9 +24,15 @@ function handleEndOfGame(canvas) {
     const prize = prizes[prizeIndex];
     score += prize; // Add the prize to the total score
 
+    // Play the win sound
+    winSound.play();
+
     messageArea.textContent = `You won ${prize} points! Total score: ${score}`;
     piBalanceP.textContent = `Score: ${score}`;
     playButton.disabled = false;
+
+    // Update the high-score board
+    updateHighScores(score);
 }
 
 // Main game loop
@@ -45,6 +56,9 @@ function updateGame(canvas, ctx) {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < ballRadius + pegRadius) {
+                // Play the plink sound
+                plinkSound.play();
+
                 const angle = Math.atan2(dy, dx);
                 const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
                 
