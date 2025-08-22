@@ -43,8 +43,34 @@ function onAuthFailure(error) {
 }
 
 playButton.addEventListener('click', () => {
-    // Drop the ball and start the game loop
+    // Disable the button to prevent multiple clicks
+    playButton.disabled = true;
+    messageArea.textContent = "Initiating payment...";
+
+    // Create a new payment request
+    const payment = Pi.createPayment({
+        amount: 0.001, // The cost to play the game
+        memo: "Plinko game play",
+        metadata: {
+            game: "Plinko",
+            type: "single_play_cost"
+        }
+    }, onPaymentSuccess, onPaymentFailure);
+});
+
+// Callback for a successful payment
+function onPaymentSuccess(payment) {
+    messageArea.textContent = "Payment successful! Dropping ball...";
+    
+    // Call the game start logic
     dropBall(canvas);
     const elements = { playButton, messageArea, piBalanceP };
     startGameLoop(canvas, ctx, elements);
-});
+}
+
+// Callback for a failed payment
+function onPaymentFailure(error) {
+    console.error("Payment failed:", error);
+    messageArea.textContent = "Payment failed. Please try again.";
+    playButton.disabled = false; // Re-enable the button
+}
