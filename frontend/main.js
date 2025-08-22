@@ -1,5 +1,3 @@
-// main.js
-
 import { createPegs, drawPegs } from './board.js';
 import { dropBall, ballRadius } from './ball.js';
 import { startGameLoop } from './game.js';
