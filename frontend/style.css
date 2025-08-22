@@ -86,3 +86,91 @@ h1 {
     font-size: 1.1em;
     min-height: 25px;
 }
+
+body {
+    background-color: #2c3e50; /* A dark, charcoal background */
+    color: #ecf0f1; /* Light text color for contrast */
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+#game-container {
+    background-color: #34495e; /* Slightly lighter dark container */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+}
+
+.user-info {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+#plinko-canvas {
+    background-color: #2c3e50;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: block;
+}
+
+#play-button {
+    background-color: #2ecc71; /* A vibrant green for the button */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#play-button:hover {
+    background-color: #27ae60; /* Darker green on hover */
+}
+
+#play-button:disabled {
+    background-color: #7f8c8d; /* Gray color when disabled */
+    cursor: not-allowed;
+}
+
+#message-area {
+    margin-top: 15px;
+    min-height: 25px; /* Prevent layout shift */
+    font-style: italic;
+}
+
+#high-scores-board {
+    margin-top: 25px;
+    border-top: 1px solid #7f8c8d;
+    padding-top: 15px;
+}
+
+#high-scores-board h3 {
+    color: #f39c12; /* A vibrant orange for the title */
+    margin-top: 0;
+}
+
+#high-scores-list {
+    list-style-type: none;
+    padding: 0;
+    font-size: 0.95em;
+}
+
+#high-scores-list li {
+    background-color: #34495e;
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
