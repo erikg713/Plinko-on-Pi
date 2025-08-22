@@ -1,28 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Plinko on Pi</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-  <script src="libs/matter.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plinko Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🎰 Plinko on Pi</h1>
-  <button id="loginBtn">Login with Pi</button>
-
-  <div id="gameArea" style="display:none;">
-    <h2>Drop a Ball</h2>
-    <p>Bet Amount: <input type="number" id="betAmount" value="1" min="1"> Pi</p>
-    <button id="playBtn">Play Plinko</button>
-    <canvas id="plinkoCanvas" width="600" height="800"></canvas>
-    <p id="result"></p>
-  </div>
-<section class="leaderboard">
-  <h2>🏆 Leaderboard</h2>
-  <ol id="leaderboardList"></ol>
-</section>
-  <script src="plinko.js"></script>
-  <script src="app.js"></script>
+    <div id="game-container">
+        <div class="user-info">
+            Welcome, <span id="pi-username"></span>!
+            <p id="pi-balance">Score: 0</p>
+        </div>
+        <canvas id="plinko-canvas"></canvas>
+        <button id="play-button">Play</button>
+        <p id="message-area">Click 'Play' to start!</p>
+    </div>
+    
+    <script type="module" src="main.js"></script>
 </body>
 </html>
