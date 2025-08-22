@@ -1,28 +1,57 @@
-// ball.js
+// frontend/ball.js
+// Improved, production-friendly ball module for Plinko-on-Pi
+// - Encapsulates ball behavior in a Ball class
+// - Uses time-based physics (dt in seconds) for stable animation
+// - Adds configurable physics constants (gravity, air resistance, restitution)
+// - Keeps a single exported `ball` for backward compatibility while providing helper APIs
+// - Clear JSDoc and small utility helpers for readability and maintainability
 
 const ballRadius = 6;
-const ballColor = '#f39c12';
+const defaultBallColor = '#f39c12';
 
-let ball = null;
+// Physics tunables (pixels / second^2, etc.)
+const GRAVITY = 1600; // px/s^2
+const AIR_RESISTANCE = 0.4; // fraction per second (0 = no drag, 1 = immediate stop)
+const RESTITUTION = 0.45; // bounciness on collisions (0..1)
+const GROUND_FRICTION = 0.7; // multiplier applied to vx when hitting ground
+const MAX_INITIAL_VX = 150; // px/s
 
-// Function to drop a new ball
-function dropBall(canvas) {
-    ball = {
-        x: canvas.width / 2,
-        y: 0,
-        vx: (Math.random() - 0.5) * 5, // Random horizontal velocity
-        vy: 2
-    };
-    return ball;
+let ball = null; // exported current ball for compatibility with existing code
+
+/**
+ * Clamp value between min and max.
+ * @param {number} v
+ * @param {number} a
+ * @param {number} b
+ */
+function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
 }
 
-// Function to draw the ball
-function drawBall(ctx) {
-    if (!ball) return;
-    ctx.fillStyle = ballColor;
-    ctx.beginPath();
-    ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
-    ctx.fill();
-}
+/**
+ * Ball class implementing simple physics.
+ */
+class Ball {
+    /**
+     * @param {number} x - initial x (px)
+     * @param {number} y - initial y (px)
+     * @param {object} [opts]
+     * @param {number} [opts.vx] - initial x velocity (px/s)
+     * @param {number} [opts.vy] - initial y velocity (px/s)
+     * @param {number} [opts.r] - radius in px
+     * @param {string} [opts.color] - CSS color
+     */
+    constructor(x, y, opts = {}) {
+        this.x = x;
+        this.y = y;
+        this.vx = typeof opts.vx === 'number' ? opts.vx : 0;
+        this.vy = typeof opts.vy === 'number' ? opts.vy : 0;
+        this.r = typeof opts.r === 'number' ? opts.r : ballRadius;
+        this.color = opts.color || defaultBallColor;
+        this.stopped = false; // becomes true when ball has essentially come to rest
+        this.removed = false; // flag for off-screen removal if needed externally
+    }
 
-export { ball, ballRadius, dropBall, drawBall };
+    /**
+     *
+    
