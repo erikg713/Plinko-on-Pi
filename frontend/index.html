@@ -17,7 +17,24 @@
         <button id="play-button">Play</button>
         <p id="message-area">Click 'Play' to start!</p>
     </div>
+    <body>
+    <div id="game-container">
+        <div class="user-info">
+            Welcome, <span id="pi-username"></span>!
+            <p id="pi-balance">Score: 0</p>
+        </div>
+        <canvas id="plinko-canvas"></canvas>
+        <button id="play-button">Play</button>
+        <p id="message-area">Click 'Play' to start!</p>
+        
+        <div id="high-scores-board">
+            <h3>High Scores</h3>
+            <ul id="high-scores-list">
+                </ul>
+        </div>
+    </div>
     
     <script type="module" src="main.js"></script>
-</body>
+    </body>
+    
 </html>
