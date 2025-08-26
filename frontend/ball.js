@@ -6,6 +6,33 @@
 // - Keeps a single exported `ball` for backward compatibility while providing helper APIs
 // - Clear JSDoc and small utility helpers for readability and maintainability
 
+// ball.js
+
+const ballRadius = 6;
+const ballColor = '#f39c12';
+
+// Define the Ball class
+class Ball {
+    constructor(canvas) {
+        // Initialize ball properties
+        this.x = canvas.width / 2;
+        this.y = 0;
+        this.vx = (Math.random() - 0.5) * 5;
+        this.vy = 2;
+        this.radius = ballRadius;
+        this.color = ballColor;
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+export { Ball };
+
 const ballRadius = 6;
 const defaultBallColor = '#f39c12';
 
