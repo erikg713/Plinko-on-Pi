@@ -1,15 +1,51 @@
 {
   "name": "plinko-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
+  "description": "Backend API for Plinko-on-Pi — lightweight Express server with sensible defaults for production and development.",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
   },
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon --watch . --ext js,json --delay 1000ms server.js",
+    "lint": "eslint . --ext .js",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/erikg713/Plinko-on-Pi.git"
+  },
+  "keywords": [
+    "plinko",
+    "express",
+    "api",
+    "iot"
+  ],
+  "author": "erikg713",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/erikg713/Plinko-on-Pi/issues"
+  },
+  "homepage": "https://github.com/erikg713/Plinko-on-Pi#readme",
   "dependencies": {
     "axios": "^1.4.0",
     "body-parser": "^1.20.2",
-    "express": "^4.18.2",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.8.0",
+    "helmet": "^6.0.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "eslint": "^8.40.0",
+    "nodemon": "^3.0.1",
+    "prettier": "^2.8.8"
   }
 }
