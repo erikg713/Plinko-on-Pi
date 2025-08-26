@@ -9,7 +9,14 @@
  */
 
 require('dotenv').config();
+require("dotenv").config();
 
+module.exports = {
+  PORT: process.env.PORT || 5000,
+  MONGO_URI: process.env.MONGO_URI || "mongodb://localhost:27017/plinko",
+  PI_API_KEY: process.env.PI_API_KEY,
+  ADMIN_SECRET: process.env.ADMIN_SECRET || "changeme" // for admin routes
+};
 const DEFAULTS = {
   PORT: 5000,
   PI_API_URL: 'https://api.minepi.com/v2'
