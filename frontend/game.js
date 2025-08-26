@@ -1,39 +1,96 @@
-// frontend/game.js
-// Improved, more robust game loop and collision handling for Plinko-on-Pi.
-// Author: refactor by Copilot-style assistant (kept human-like, idiomatic JS)
+// game.js
 
 import { drawPegs, pegs, pegRadius, prizes } from './board.js';
-import { ball, ballRadius, drawBall } from './ball.js';
 import { updateHighScores } from './main.js';
 
 let isPlaying = false;
 let score = 0;
+let playButton, messageArea, piBalanceP;
 
-// UI references (populated when game starts)
-let playButton = null;
-let messageArea = null;
-let piBalanceP = null;
-
-// Animation frame handle and timing
-let rafId = null;
-let lastTimestamp = null;
-
-// Physics tuning
-const GRAVITY = 980; // px / s^2 (scaled; you can tune)
-const MAX_STEP = 0.05; // seconds - clamp dt to avoid tunneling on tab-switch
-const RESTITUTION = 0.9; // bounciness on collisions
-const WALL_DAMPING = 0.8; // horizontal damping when hitting side walls
-
-// Audio
+// Create audio objects for sound effects
 const plinkSound = new Audio('sounds/plink.wav');
-plinkSound.preload = 'auto';
 const winSound = new Audio('sounds/win.mp3');
-winSound.preload = 'auto';
 
-// Simple throttle for the plink sound so lots of peg collisions don't spam audio
-let lastPlinkTime = 0;
-const PLINK_MIN_INTERVAL = 40; // ms
+// Function to handle what happens when the ball reaches the bottom
+function handleEndOfGame(canvas, ballInstance) {
+    if (!ballInstance) return;
 
+    const prizeIndex = Math.floor(
+        (ballInstance.x / canvas.width) * prizes.length
+    );
+    
+    const prize = prizes[prizeIndex];
+    score += prize;
+
+    winSound.play();
+
+    messageArea.textContent = `You won ${prize} points! Total score: ${score}`;
+    piBalanceP.textContent = `Score: ${score}`;
+    playButton.disabled = false;
+
+    updateHighScores(score);
+}
+
+// Main game loop
+function updateGame(canvas, ctx, ballInstance) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawPegs(ctx);
+    
+    // Call the draw method on the Ball instance
+    ballInstance.draw(ctx);
+
+    // Apply gravity
+    ballInstance.vy += 0.2;
+
+    // Update ball position
+    ballInstance.x += ballInstance.vx;
+    ballInstance.y += ballInstance.vy;
+
+    // Collision detection with pegs
+    pegs.forEach(peg => {
+        const dx = ballInstance.x - peg.x;
+        const dy = ballInstance.y - peg.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < ballInstance.radius + pegRadius) {
+            plinkSound.play();
+
+            const angle = Math.atan2(dy, dx);
+            const speed = Math.sqrt(ballInstance.vx * ballInstance.vx + ballInstance.vy * ballInstance.vy);
+            
+            ballInstance.vx = Math.cos(angle) * speed * 0.9;
+            ballInstance.vy = Math.sin(angle) * speed * 0.9;
+        }
+    });
+    
+    // Keep ball within horizontal bounds
+    if (ballInstance.x - ballInstance.radius < 0 || ballInstance.x + ballInstance.radius > canvas.width) {
+        ballInstance.vx *= -0.8;
+    }
+
+    // Check if the ball has reached the bottom
+    if (ballInstance.y > canvas.height - ballInstance.radius) {
+        handleEndOfGame(canvas, ballInstance);
+        ballInstance = null;
+        isPlaying = false;
+        return;
+    }
+    
+    requestAnimationFrame(() => updateGame(canvas, ctx, ballInstance));
+}
+
+function startGameLoop(canvas, ctx, elements, ballInstance) {
+    playButton = elements.playButton;
+    messageArea = elements.messageArea;
+    piBalanceP = elements.piBalanceP;
+    if (isPlaying) return;
+    isPlaying = true;
+    messageArea.textContent = "Dropping ball...";
+    playButton.disabled = true;
+    updateGame(canvas, ctx, ballInstance);
+}
+
+export { startGameLoop, score, isPlaying };
 function safePlay(audio) {
   // Play audio but swallow promise rejections (browsers block autoplay sometimes)
   try {
