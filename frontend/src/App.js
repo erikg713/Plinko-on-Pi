@@ -1,40 +1,42 @@
-/* frontend/app.js
-   Cleaner, more robust frontend integration with Pi SDK and backend.
-   - Consolidates duplicated logic
-   - Validates inputs and handles errors gracefully
-   - Uses short, readable helper functions
-   - Keeps UI responsive while network/payment/game operations run
-*/
+import React, { useState, useEffect } from "react";
+import PlinkoBoard from "./components/PlinkoBoard";
+import Leaderboard from "./components/Leaderboard";
+import Wallet from "./components/Wallet";
+import AdminDashboard from "./components/AdminDashboard";
+import { fetchLeaderboard } from "./api";
 
-const BACKEND_URL = window.BACKEND_URL || "https://yourbackend.com";
-let user = null;
-const HOUSE_EDGE = 0.05;
-const LEADERBOARD_POLL_MS = 60_000; // 60s
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
 
-// Cached DOM elements
-const els = {
-  loginBtn: document.getElementById("loginBtn"),
-  playBtn: document.getElementById("playBtn"),
-  betAmount: document.getElementById("betAmount"),
-  result: document.getElementById("result"),
-  userInfo: document.getElementById("userInfo"),
-  gameArea: document.getElementById("gameArea"),
-  leaderboardList: document.getElementById("leaderboardList"),
-};
+  useEffect(() => {
+    // Load leaderboard on start
+    fetchLeaderboard().then(setLeaderboard);
 
-// Small helper to avoid repeating try/catch/finally UI toggles
-function setButtonState(button, { disabled = false, text = null } = {}) {
-  if (!button) return;
-  button.disabled = disabled;
-  if (typeof text === "string") button.dataset.origText = button.innerText, (button.innerText = text);
-  else if (text === null && button.dataset.origText) button.innerText = button.dataset.origText;
-}
+    // Authenticate with Pi Browser
+    if (window.Pi) {
+      window.Pi.authenticate(["payments"]).then(({ user }) => {
+        setUser(user);
+      }).catch(err => {
+        console.error("Pi auth failed:", err);
+      });
+    }
+  }, []);
 
-// Fetch wrapper with timeout and JSON convenience
-async function fetchWithTimeout(url, options = {}, timeoutMs = 10_000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
+  return (
+    <div className="app">
+      <h1>🎰 Plinko on Pi</h1>
+      <Wallet user={user} />
+
+      <div className="game-container">
+        <PlinkoBoard user={user} />
+        <Leaderboard data={leaderboard} />
+      </div>
+
+      {user?.username === "admin" && <AdminDashboard />}
+    </div>
+  );
+}  try {
     const res = await fetch(url, { signal: controller.signal, ...options });
     clearTimeout(timeout);
     return res;
