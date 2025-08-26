@@ -13,6 +13,108 @@
 import { createPegs, drawPegs } from './board.js';
 import { dropBall, ballRadius } from './ball.js';
 import { startGameLoop } from './game.js';
+import { createPegs, drawPegs } from './board.js';
+import { startGameLoop } from './game.js';
+import { updateHighScores } from './main.js';
+import { Ball } from './ball.js'; // Import the new Ball class
+
+// Get elements from the DOM
+const canvas = document.getElementById('plinko-canvas');
+const ctx = canvas.getContext('2d');
+const playButton = document.getElementById('play-button');
+const messageArea = document.getElementById('message-area');
+const piUsernameSpan = document.getElementById('pi-username');
+const piBalanceP = document.getElementById('pi-balance');
+
+let pegs = [];
+let score = 0;
+let piUsername = "Guest";
+let ballInstance = null; // A variable to hold our Ball object
+
+// Event listeners
+window.onload = () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    pegs = createPegs(canvas);
+    drawPegs(ctx);
+    displayHighScores();
+
+    piBalanceP.textContent = `Score: ${score}`;
+    playButton.disabled = false;
+
+    Pi.authenticate(["username"], onAuthSuccess, onAuthFailure);
+};
+
+function onAuthSuccess(user) {
+    piUsername = user.username;
+    piUsernameSpan.textContent = piUsername;
+    messageArea.textContent = `Hello, ${piUsername}! Click 'Play' to start.`;
+    playButton.disabled = false;
+}
+
+function onAuthFailure(error) {
+    console.error("Pi authentication failed:", error);
+    messageArea.textContent = "Authentication failed. Please use the Pi Browser.";
+    playButton.disabled = true;
+}
+
+playButton.addEventListener('click', () => {
+    playButton.disabled = true;
+    messageArea.textContent = "Initiating payment...";
+
+    const payment = Pi.createPayment({
+        amount: 0.001,
+        memo: "Plinko game play",
+        metadata: {
+            game: "Plinko",
+            type: "single_play_cost"
+        }
+    }, onPaymentSuccess, onPaymentFailure);
+});
+
+function onPaymentSuccess(payment) {
+    messageArea.textContent = "Payment successful! Dropping ball...";
+    
+    // Create a new Ball object and pass it to the game loop
+    ballInstance = new Ball(canvas);
+    const elements = { playButton, messageArea, piBalanceP };
+    startGameLoop(canvas, ctx, elements, ballInstance);
+}
+
+function onPaymentFailure(error) {
+    console.error("Payment failed:", error);
+    messageArea.textContent = "Payment failed. Please try again.";
+    playButton.disabled = false;
+}
+
+// ... high score functions are the same as before ...
+
+function getHighScores() {
+    const scores = JSON.parse(localStorage.getItem('plinkoHighScores')) || [];
+    return scores.sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+function updateHighScores(currentScore) {
+    if (piUsername === "Guest") return;
+    const scores = getHighScores();
+    const newScore = { username: piUsername, score: currentScore };
+    scores.push(newScore);
+    const updatedScores = scores.sort((a, b) => b.score - a.score).slice(0, 5);
+    localStorage.setItem('plinkoHighScores', JSON.stringify(updatedScores));
+    displayHighScores();
+}
+
+function displayHighScores() {
+    const scores = getHighScores();
+    highScoresList.innerHTML = '';
+    scores.forEach((score, index) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${index + 1}. ${score.username}: ${score.score}`;
+        highScoresList.appendChild(listItem);
+    });
+}
+
+export { updateHighScores };
 
 const MAX_HIGH_SCORES = 5;
 const HIGHSCORES_KEY = 'plinkoHighScores';
