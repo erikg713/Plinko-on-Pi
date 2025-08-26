@@ -1,13 +1,33 @@
-require("dotenv").config();
+'use strict';
 
-module.exports = {
-  PORT: process.env.PORT || 5000,
-  MONGO_URI: process.env.MONGO_URI || "mongodb://localhost:27017/plinko",
-  PI_API_KEY: process.env.PI_API_KEY,
-  ADMIN_SECRET: process.env.ADMIN_SECRET || "changeme" // for admin routes
-};    new URL(value);
+/**
+ * Application configuration.
+ * - Loads environment variables via dotenv.
+ * - Validates PORT and PI_API_URL.
+ * - Enforces PI_API_KEY presence in production.
+ * - Exposes pre-built headers for calling Pi API.
+ */
+
+require('dotenv').config();
+
+const DEFAULTS = {
+  PORT: 5000,
+  PI_API_URL: 'https://api.minepi.com/v2'
+};
+
+function parsePort(value) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: ${String(value)}. PORT must be a positive integer.`);
+  }
+  return port;
+}
+
+function validateUrl(value, name) {
+  try {
+    new URL(value); // will throw if invalid
     return value;
-  } catch (err) {
+  } catch {
     throw new Error(`Invalid ${name}: ${String(value)}. Please provide a valid URL.`);
   }
 }
@@ -17,15 +37,14 @@ const IS_PRODUCTION = NODE_ENV === 'production';
 
 const PORT = (() => {
   const raw = process.env.PORT ?? DEFAULTS.PORT;
-  // allow string numbers like "5000"
   return parsePort(raw);
 })();
 
-const PI_API_URL = validateUrl(process.env.PI_API_URL ?? DEFAULTS.PI_API_URL, 'PI_API_URL');
+const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/plinko";
 
+const PI_API_URL = validateUrl(process.env.PI_API_URL ?? DEFAULTS.PI_API_URL, 'PI_API_URL');
 const PI_API_KEY = (process.env.PI_API_KEY || '').trim() || null;
 
-// Require PI_API_KEY in production; allow missing key in development with a warning.
 if (IS_PRODUCTION && !PI_API_KEY) {
   throw new Error(
     'PI_API_KEY is required in production. Set PI_API_KEY in environment variables (see Pi Developer Portal).'
@@ -33,8 +52,30 @@ if (IS_PRODUCTION && !PI_API_KEY) {
 }
 
 if (!PI_API_KEY) {
-  // Masking just in case logs accidentally include it later
-  // (We do not log the key itself.)
+  console.warn(
+    '⚠️ PI_API_KEY is not set. Pi API calls may fail. This is allowed in non-production environments.'
+  );
+}
+
+const PI_API_HEADERS = {
+  'Content-Type': 'application/json',
+  ...(PI_API_KEY ? { Authorization: `Bearer ${PI_API_KEY}` } : {})
+};
+
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "changeme"; // for admin routes
+
+const config = Object.freeze({
+  NODE_ENV,
+  IS_PRODUCTION,
+  PORT,
+  MONGO_URI,
+  PI_API_URL,
+  PI_API_KEY,
+  PI_API_HEADERS,
+  ADMIN_SECRET
+});
+
+module.exports = config;  // (We do not log the key itself.)
   /* eslint-disable no-console */
   console.warn('PI_API_KEY is not set. Pi API calls will be unauthenticated or may fail. This is allowed in non-production environments.');
   /* eslint-enable no-console */
