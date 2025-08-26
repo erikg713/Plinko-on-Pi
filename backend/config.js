@@ -1,14 +1,3 @@
-'use strict';
-
-/**
- * Application configuration.
- * - Loads environment variables via dotenv.
- * - Validates PORT and PI_API_URL.
- * - Enforces PI_API_KEY presence in production.
- * - Exposes pre-built headers for calling Pi API.
- */
-
-require('dotenv').config();
 require("dotenv").config();
 
 module.exports = {
@@ -16,25 +5,7 @@ module.exports = {
   MONGO_URI: process.env.MONGO_URI || "mongodb://localhost:27017/plinko",
   PI_API_KEY: process.env.PI_API_KEY,
   ADMIN_SECRET: process.env.ADMIN_SECRET || "changeme" // for admin routes
-};
-const DEFAULTS = {
-  PORT: 5000,
-  PI_API_URL: 'https://api.minepi.com/v2'
-};
-
-function parsePort(value) {
-  const port = Number(value);
-  if (!Number.isInteger(port) || port <= 0) {
-    throw new Error(`Invalid PORT value: ${String(value)}. PORT must be a positive integer.`);
-  }
-  return port;
-}
-
-function validateUrl(value, name) {
-  try {
-    // URL constructor will throw if invalid
-    // eslint-disable-next-line no-new
-    new URL(value);
+};    new URL(value);
     return value;
   } catch (err) {
     throw new Error(`Invalid ${name}: ${String(value)}. Please provide a valid URL.`);
