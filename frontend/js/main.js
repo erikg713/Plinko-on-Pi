@@ -16,6 +16,112 @@
  * - `startGameLoop` is still responsible for the actual animation; this
  *   module wires UI, payments, canvas sizing and high-scores.
  */
+import { createPegs, drawPegs } from './board.js';
+import { startGameLoop } from './game.js';
+import { Ball } from './ball.js';
+import { Board } from './board.js';
+
+// The URL for your backend API
+const API_URL = "http://localhost:3000";
+
+const canvas = document.getElementById('plinko-canvas');
+const ctx = canvas.getContext('2d');
+const playButton = document.getElementById('play-button');
+const messageArea = document.getElementById('message-area');
+const piUsernameSpan = document.getElementById('pi-username');
+const piBalanceP = document.getElementById('pi-balance');
+const highScoresList = document.getElementById('high-scores-list');
+const resetButton = document.getElementById('reset-button');
+
+let score = 0;
+let piUsername = "Guest";
+let boardInstance = null;
+
+window.onload = async () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+    boardInstance = new Board(canvas);
+    boardInstance.draw(ctx);
+    await displayHighScores();
+    piBalanceP.textContent = `Score: ${score}`;
+    playButton.disabled = false;
+    Pi.authenticate(["username"], onAuthSuccess, onAuthFailure);
+};
+
+function onAuthSuccess(user) {
+    piUsername = user.username;
+    piUsernameSpan.textContent = piUsername;
+    messageArea.textContent = `Hello, ${piUsername}! Click 'Play' to start.`;
+    playButton.disabled = false;
+}
+
+function onAuthFailure(error) {
+    console.error("Pi authentication failed:", error);
+    messageArea.textContent = "Authentication failed. Please use the Pi Browser.";
+    playButton.disabled = true;
+}
+
+playButton.addEventListener('click', () => {
+    playButton.disabled = true;
+    messageArea.textContent = "Initiating payment...";
+
+    const payment = Pi.createPayment({
+        amount: 0.001,
+        memo: "Plinko game play",
+        metadata: {
+            game: "Plinko",
+            type: "single_play_cost"
+        }
+    }, onPaymentSuccess, onPaymentFailure);
+});
+
+async function onPaymentSuccess(payment) {
+    messageArea.textContent = "Payment successful! Dropping ball...";
+    const ballInstance = new Ball(canvas);
+    const elements = { playButton, messageArea, piBalanceP };
+    startGameLoop(canvas, ctx, elements, ballInstance, boardInstance);
+
+    // You would typically send payment info to your backend here
+    // For now, this is just a placeholder
+    // await fetch(`${API_URL}/payment-webhook`, { ... });
+}
+
+function onPaymentFailure(error) {
+    console.error("Payment failed:", error);
+    messageArea.textContent = "Payment failed. Please try again.";
+    playButton.disabled = false;
+}
+
+resetButton.addEventListener('click', () => {
+    score = 0;
+    piBalanceP.textContent = `Score: ${score}`;
+    messageArea.textContent = "Score has been reset.";
+    playButton.disabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    boardInstance.draw(ctx);
+});
+
+// Fetches the global high scores from the backend
+async function displayHighScores() {
+    try {
+        const response = await fetch(`${API_URL}/leaderboard`);
+        const scores = await response.json();
+        highScoresList.innerHTML = '';
+        scores.forEach(score => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${score.rank}. ${score.user}: ${score.totalWinnings}`;
+            highScoresList.appendChild(listItem);
+        });
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+        highScoresList.innerHTML = "<li>Error loading leaderboard.</li>";
+    }
+}
+
+// This function will need to be called from game.js
+export function updateHighScores(currentScore) {
+    displayHighScores();
+}
 
 import { createPegs, drawPegs } from './board.js';
 import { Ball } from './ball.js';
