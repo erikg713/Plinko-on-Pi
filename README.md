@@ -53,7 +53,7 @@ Tech stack
 - Deployment: Docker / Heroku / Render / VPS (examples included below)
 
 ---
-
+```
 Project layout (high level)
 plinko-dapp/
 ├─ frontend/            # Static game UI and client code
@@ -71,7 +71,7 @@ plinko-dapp/
 │  └─ Dockerfile
 ├─ docker-compose.yml
 └─ README.md
-
+```
 ---
 
 Quick start (development)
