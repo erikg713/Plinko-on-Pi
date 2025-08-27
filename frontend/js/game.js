@@ -2,6 +2,74 @@
 
 import { drawPegs, pegs, pegRadius, prizes } from './board.js';
 import { updateHighScores } from './main.js';
+import { pegRadius } from './board.js';
+import { updateHighScores } from './main.js';
+
+let isPlaying = false;
+let score = 0;
+let playButton, messageArea, piBalanceP;
+
+const plinkSound = new Audio('sounds/plink.wav');
+const winSound = new Audio('sounds/win.mp3');
+
+function handleEndOfGame(canvas, ballInstance, boardInstance) {
+    if (!ballInstance) return;
+    const prizeIndex = Math.floor((ballInstance.x / canvas.width) * boardInstance.prizes.length);
+    const prize = boardInstance.prizes[prizeIndex];
+    score += prize;
+    winSound.play();
+    messageArea.textContent = `You won ${prize} points! Total score: ${score}`;
+    piBalanceP.textContent = `Score: ${score}`;
+    playButton.disabled = false;
+    // The frontend no longer saves scores locally, it will fetch from the backend
+    updateHighScores(score);
+}
+
+function updateGame(canvas, ctx, ballInstance, boardInstance) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    boardInstance.draw(ctx);
+    ballInstance.draw(ctx);
+    ballInstance.vy += 0.2;
+    ballInstance.x += ballInstance.vx;
+    ballInstance.y += ballInstance.vy;
+
+    boardInstance.pegs.forEach(peg => {
+        const dx = ballInstance.x - peg.x;
+        const dy = ballInstance.y - peg.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < ballInstance.radius + pegRadius) {
+            plinkSound.play();
+            const angle = Math.atan2(dy, dx);
+            const speed = Math.sqrt(ballInstance.vx * ballInstance.vx + ballInstance.vy * ballInstance.vy);
+            ballInstance.vx = Math.cos(angle) * speed * 0.9;
+            ballInstance.vy = Math.sin(angle) * speed * 0.9;
+        }
+    });
+
+    if (ballInstance.x - ballInstance.radius < 0 || ballInstance.x + ballInstance.radius > canvas.width) {
+        ballInstance.vx *= -0.8;
+    }
+
+    if (ballInstance.y > canvas.height - ballInstance.radius) {
+        handleEndOfGame(canvas, ballInstance, boardInstance);
+        ballInstance = null;
+        isPlaying = false;
+        return;
+    }
+    requestAnimationFrame(() => updateGame(canvas, ctx, ballInstance, boardInstance));
+}
+
+export function startGameLoop(canvas, ctx, elements, ballInstance, boardInstance) {
+    playButton = elements.playButton;
+    messageArea = elements.messageArea;
+    piBalanceP = elements.piBalanceP;
+    if (isPlaying) return;
+    isPlaying = true;
+    messageArea.textContent = "Dropping ball...";
+    playButton.disabled = true;
+    updateGame(canvas, ctx, ballInstance, boardInstance);
+}
 
 let isPlaying = false;
 let score = 0;
