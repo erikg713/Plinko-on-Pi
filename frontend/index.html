@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plinko Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://sdk.mine.pi/pi-sdk.js"></script>
+    <script type="module" src="js/main.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <div class="user-info">
+            Welcome, <span id="pi-username"></span>!
+            <p id="pi-balance">Score: 0</p>
+        </div>
+        <canvas id="plinko-canvas"></canvas>
+        <button id="play-button">Play</button>
+        <button id="reset-button">Reset Score</button>
+        <p id="message-area">Click 'Play' to start!</p>
+
+        <div id="high-scores-board">
+            <h3>High Scores</h3>
+            <ul id="high-scores-list">
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+
