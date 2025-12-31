@@ -1,100 +1,41 @@
-### 🎮Plinko on Pi🕹️ ###
+# EdgeRush
 
-Step back into the golden age of arcades with Plinko on Pi — a physics‑powered Plinko machine reimagined for the Pi Browser.  
-Drop balls, watch them bounce through neon‑lit pegs, and chase the thrill of unpredictable outcomes in a retro‑arcade style experience.  
+**Ultimate Web3 Plinko dApp on Pi Network**  
+Drop balls. Bet real Pi. Chase edge multipliers up to x10,000. Provably fair degen rush. Built for Pi Browser.
 
-Built with Pi SDK integration, provably fair randomness, and a mobile‑first design, Plinko on Pi brings the nostalgia of classic arcades into the Pi Network era.
+Rollbit-grade beast: seamless Pi SDK bets/payouts, multi-ball drops, extreme risk modes. Mobile-first, pure adrenaline – engineered to explode Pi utility and crush hackathons.
 
----
+## 🚀 Features
 
-🎮 Arcade Gameplay
+- Real Pi bets & instant payouts (Pi SDK v2.0)
+- Canvas physics with chaotic bounces
+- 30+ setups: 8–16 rows, Low/Med/High/Degen risk
+- Provably fair (HMAC-SHA256 seeds, full verification)
+- Multi-drop (up to 100 balls), auto-bet martingale
+- Leaderboards, win streak feeds, daily edge challenges
+- Dark mode, SFX, touch-optimized UI
 
-- Tap to drop balls into the board  
-- Watch physics in action as they bounce through pegs  
-- Unlock multipliers based on where they land  
-- Choose difficulty with 8–16 row boards  
-- Enjoy retro vibes with neon colors, pixel‑art themes, and 8‑bit sound effects  
+## 🛠️ Tech Stack
 
-Every drop feels like you’re standing at a real arcade machine.
+- HTML5 + Canvas + Vanilla JS
+- Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
+- CSS3 responsive dark theme
+- Deploy: Static (Vercel/Netlify) + Pi Developer Portal
 
----
+## 📱 Screenshots
 
-🛍️ Arcade Store
+![EdgeRush Gameplay 1](assets/screenshot1.jpg)
+![EdgeRush Gameplay 2](assets/screenshot2.jpg)
+![EdgeRush Gameplay 3](assets/screenshot3.jpg)
+![EdgeRush Gameplay 4](assets/screenshot4.jpg)
+![EdgeRush Gameplay 5](assets/screenshot5.jpg)
+![EdgeRush Gameplay 6](assets/screenshot6.jpg)
+![EdgeRush Gameplay 7](assets/screenshot7.jpg)
+![EdgeRush Gameplay 8](assets/screenshot8.jpg)
 
-Customize your experience with unlockable extras:
+## 🚀 Quick Start
 
-- 🎨 Themes: Neon, Pixel‑Art, Cyber Grid, Classic Wood  
-- 🔊 Sound Packs: 8‑bit chiptunes, synthwave, arcade jingles  
-- 🌌 Boards: Alternate layouts, special peg patterns, seasonal designs  
-- 🏆 Cosmetics: Glow trails, particle effects, retro badges  
-
-The store keeps the arcade fresh — collect, customize, and show off your style.
-
----
-
-🔐 Provably Fair Randomness
-
-Classic arcades relied on physics.  
-Plinko on Pi adds cryptographic fairness:
-
-- Client + server seed hashing  
-- SHA‑256 commitments  
-- Transparent, verifiable outcomes  
-
-You get the unpredictability of a real Plinko board — with modern trust.
-
----
-
-🚀 Features
-
-- Retro‑arcade inspired gameplay  
-- HTML5 Canvas physics engine  
-- Adjustable board difficulty  
-- Auto‑drop simulation mode  
-- Player stats & leaderboards  
-- Daily challenges & achievements  
-- Dark mode & touch‑optimized UI  
-- Unlockable themes & sound packs via the Arcade Store
-
----
-
-🛠️ Tech Stack
-
-- HTML5 Canvas for physics rendering  
-- Vanilla JavaScript for game logic  
-- Pi SDK (https://sdk.minepi.com/pi-sdk.js)  
-- CSS3 responsive design  
-- Deployment: Vercel / Netlify + Pi Developer Portal  
-
----
-
-📱 Screenshots
-
-`
-assets/screenshot1.jpg  
-assets/screenshot2.jpg  
-assets/screenshot3.jpg  
-assets/screenshot4.jpg  
-assets/screenshot5.jpg  
-assets/screenshot6.jpg
-`
-
----
-
-⚡ Quick Start
-
-`bash
-git clone https://github.com/erikg713/plinko-on-pi.git
-cd plinko-on-pi/frontend
-`
-
-Open the project in your Pi Browser development environment and begin exploring or customizing the experience.
-
----
-
-🎨 Future Expansions
-
-- Retro pixel‑art arcade cabinet UI  
-- Seasonal events (Halloween, Winter, Summer)  
-- Multiplayer “arcade hall” mode  
-- More unlockables in the Arcade Store
+1. Clone:
+   ```bash
+   git clone https://github.com/yourusername/edgerush.git
+   cd edgerush/frontend
