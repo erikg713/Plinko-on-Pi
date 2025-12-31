@@ -1,4 +1,9 @@
+
 import React from 'react';
+import Dashboard from './components/Dashboard';
+
+// Inside your activeTab checks:
+{activeTab === 'dashboard' && <Dashboard />}
 
 const Dashboard = () => {
   // Mock real-time data - replace with API fetch later
