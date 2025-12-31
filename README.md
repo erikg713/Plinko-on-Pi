@@ -98,7 +98,3 @@ Open the project in your Pi Browser development environment and begin exploring 
 - Seasonal events (Halloween, Winter, Summer)  
 - Multiplayer “arcade hall” mode  
 - More unlockables in the Arcade Store
-
----
-
-I can also prepare a README‑admin.md for your backend dashboard so contributors know how to manage fairness, analytics, and store content. Would you like me to merge that into this README or keep it separate for clarity?
