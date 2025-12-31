@@ -1,30 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plinko Game</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="https://sdk.mine.pi/pi-sdk.js"></script>
-    <script type="module" src="js/main.js"></script>
+    <title>Pi Plinko Crusher</title>
+    <style>body { margin:0; background:#000; } canvas { display:block; }</style>
 </head>
 <body>
-    <div id="game-container">
-        <div class="user-info">
-            Welcome, <span id="pi-username"></span>!
-            <p id="pi-balance">Score: 0</p>
-        </div>
-        <canvas id="plinko-canvas"></canvas>
-        <button id="play-button">Play</button>
-        <button id="reset-button">Reset Score</button>
-        <p id="message-area">Click 'Play' to start!</p>
+<canvas id="plinko"></canvas>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+Pi.init({ version: "2.0" });
 
-        <div id="high-scores-board">
-            <h3>High Scores</h3>
-            <ul id="high-scores-list">
-            </ul>
-        </div>
-    </div>
+const canvas = document.getElementById('plinko');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const rows = 12; // Peg rows
+const cols = rows + 1; // Bottom slots
+const pegRadius = 5;
+const ballRadius = 10;
+const slotMultipliers = [1000, 130, 26, 9, 4, 2, 1, 0.5, 1, 2, 4, 9, 26, 130, 1000]; // Classic crypto Plinko odds
+
+let pegs = [];
+let balls = [];
+let balance = 0; // Fetch from Pi wallet
+
+async function authenticate() {
+    await Pi.authenticate(['payments'], onIncompletePaymentFound);
+    // Get user balance here via Pi API if needed
+}
+
+function setupPegs() {
+    const boardWidth = canvas.width * 0.8;
+    const boardHeight = canvas.height * 0.7;
+    const startX = canvas.width / 2 - boardWidth / 2 + boardWidth / (cols * 2);
+    const startY = canvas.height * 0.1;
+    const spacingX = boardWidth / cols;
+    const spacingY = boardHeight / rows;
+
+    for (let row = 0; row < rows; row++) {
+        pegs[row] = [];
+        for (let col = 0; col <= row; col++) { // Staggered pyramid
+            let x = startX + col * spacingX + (row % 2) * spacingX / 2;
+            let y = startY + row * spacingY;
+            pegs[row].push({x, y});
+        }
+    }
+}
+
+function dropBall(betAmount) {
+    // Charge bet via Pi.payment
+    const paymentData = { amount: betAmount, memo: "Plinko Drop" };
+    Pi.createPayment(paymentData, {
+        onReadyForServerApproval: (paymentId) => Pi.approvePayment(paymentId),
+        onReadyForServerCompletion: (paymentId, txid) => Pi.completePayment(paymentId, txid),
+        onCancel: () => console.log("Cancelled"),
+        onError: (error) => console.log(error)
+    });
+
+    let ball = { x: canvas.width / 2, y: 50, vx: 0, vy: 0 };
+    balls.push(ball);
+
+    setInterval(() => updateBall(ball), 16);
+}
+
+function updateBall(ball) {
+    ball.vy += 0.5; // Gravity
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Peg collision (simple bounce left/right)
+    pegs.forEach(row => {
+        row.forEach(peg => {
+            let dx = ball.x - peg.x;
+            let dy = ball.y - peg.y;
+            if (Math.sqrt(dx*dx + dy*dy) < pegRadius + ballRadius) {
+                ball.vx += (Math.random() > 0.5 ? 5 : -5); // Random bounce
+            }
+        });
+    });
+
+    // Bottom slot detection
+    if (ball.y > canvas.height * 0.85) {
+        let slotIndex = Math.floor((ball.x / canvas.width) * slotMultipliers.length);
+        let win = betAmount * slotMultipliers[slotIndex];
+        // Payout via Pi transfer
+        alert(`Hit x${slotMultipliers[slotIndex]}! Win: ${win} Pi`);
+        // Implement payout logic
+        balls = balls.filter(b => b !== ball);
+    }
+
+    draw();
+}
+
+function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Draw pegs
+    pegs.flat().forEach(peg => {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(peg.x, peg.y, pegRadius, 0, Math.PI*2); ctx.fill();
+    });
+    // Draw balls
+    balls.forEach(ball => {
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI*2); ctx.fill();
+    });
+    // Draw slots with multipliers
+    // Add text labels at bottom
+}
+
+authenticate();
+setupPegs();
+draw();
+
+// Add bet buttons, risk levels, auto-drop, etc.
+canvas.addEventListener('click', () => dropBall(1)); // Test drop on click, replace with UI
+</script>
 </body>
 </html>
-
