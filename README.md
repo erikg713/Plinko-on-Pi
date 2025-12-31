@@ -1,10 +1,13 @@
-#### 🎮 Plinko on Pi 🕹️ ####
---------------------------------------
-# Step back into the golden age of arcades with Plinko on Pi — a physics‑powered Plinko machine reimagined for the Pi Browser.  
+## 🎮 Plinko on Pi 🕹️ ##
+--------------------------------------• • 
+
+•Step back into the golden age of arcades  with Plinko on Pi — a physics‑powered •Plinko machine reimagined for the Pi      Browser.  
+
 ---
-# Drop balls, watch them bounce through neon‑lit pegs, and chase the thrill of unpredictable outcomes in a retro‑arcade style experience.  
+
+•Drop balls, watch them bounce through     neon‑lit pegs, and chase the thrill of    unpredictable outcomes in a retro‑arcade  style experience.  
 ---
-# Built with Pi SDK integration, provably fair randomness, and a mobile‑first design, Plinko on Pi brings the nostalgia of classic arcades into the Pi Network era.
+•Built with Pi SDK integration, provably   fair randomness, and a mobile‑first design, Plinko on Pi brings the nostalgia of classic arcades into the Pi Network era.
 
 ---
 
