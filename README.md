@@ -1,13 +1,9 @@
-## 🎮 Plinko on Pi 🕹️ ##
---------------------------------------• • 
+### 🎮Plinko on Pi🕹️ ###
 
-•Step back into the golden age of arcades  with Plinko on Pi — a physics‑powered •Plinko machine reimagined for the Pi      Browser.  
+Step back into the golden age of arcades with Plinko on Pi — a physics‑powered Plinko machine reimagined for the Pi Browser.  
+Drop balls, watch them bounce through neon‑lit pegs, and chase the thrill of unpredictable outcomes in a retro‑arcade style experience.  
 
----
-
-•Drop balls, watch them bounce through     neon‑lit pegs, and chase the thrill of    unpredictable outcomes in a retro‑arcade  style experience.  
----
-•Built with Pi SDK integration, provably   fair randomness, and a mobile‑first design, Plinko on Pi brings the nostalgia of classic arcades into the Pi Network era.
+Built with Pi SDK integration, provably fair randomness, and a mobile‑first design, Plinko on Pi brings the nostalgia of classic arcades into the Pi Network era.
 
 ---
 
@@ -88,9 +84,11 @@ assets/screenshot6.jpg
 ⚡ Quick Start
 
 `bash
-git clone https://github.com/yourusername/plinko-on-pi.git
+git clone https://github.com/erikg713/plinko-on-pi.git
 cd plinko-on-pi/frontend
 `
+
+Open the project in your Pi Browser development environment and begin exploring or customizing the experience.
 
 ---
 
@@ -103,6 +101,4 @@ cd plinko-on-pi/frontend
 
 ---
 
-This version positions Plinko on Pi as a retro‑arcade showcase with a store, making it feel like a modernized classic.  
-
-Would you like me to design the store layout (categories, UI flow, retro‑arcade styling) so it looks like a real in‑game shop?
+I can also prepare a README‑admin.md for your backend dashboard so contributors know how to manage fairness, analytics, and store content. Would you like me to merge that into this README or keep it separate for clarity?
