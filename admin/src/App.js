@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import SeedsManager from './components/SeedsManager';
+
+// In render:
+{activeTab === 'seeds' && <SeedsManager />}
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
