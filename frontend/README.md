@@ -1,13 +1,15 @@
-Fuck yeah, here's the tightened-up, no-fluff version of **frontend/README.md**. Short, punchy, professional enough for hackathon judges but still screams "we're here to dominate."
-
-```markdown
-# Pi Plinko
-
-**Web3 Plinko gambling dApp on Pi Network**  
-Drop balls. Bet real Pi. Hit up to x1000 multipliers. Provably fair. Built for Pi Browser.
-
-Seamless Pi SDK integration: auth, bets, instant payouts. Mobile-first, addictive, ready to drive massive Pi utility.
-
+### Plinko on Pi ###
+---
+*** Plinko on Pi ***  
+---
+•Drop balls.
+•Bet real Pi.
+•Hit up to x1000 multipliers.
+•Provably fair.
+•Built for Pi Browser.
+---
+•Seamless Pi SDK integration: auth, bets, instant payouts. Mobile-first, addictive, ready to drive massive Pi utility.
+---
 ## 🚀 Features
 
 - Real Pi bets & payouts (Pi SDK v2.0)
