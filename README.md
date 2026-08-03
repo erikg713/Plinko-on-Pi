@@ -1,4 +1,4 @@
-# EdgeRush
+# Plinko-on-Pi
 
 **Ultimate Web3 Plinko dApp on Pi Network**  
 Drop balls. Bet real Pi. Chase edge multipliers up to x10,000. Provably fair degen rush. Built for Pi Browser.
