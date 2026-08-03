@@ -5,7 +5,9 @@
 
 CREATE TABLE IF NOT EXISTS bets (
     id BIGSERIAL PRIMARY KEY,
-
+    game_id BIGINT NOT NULL 
+    REFERENCES games(id) 
+    ON DELETE CASCADE
     player_uid UUID NOT NULL,
 
     pi_username VARCHAR(64) NOT NULL,
