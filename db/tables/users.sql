@@ -2,7 +2,7 @@
 -- Pi Network Plinko Game - Users Table Schema
 -- ============================================================================
 -- Purpose: Manages user accounts with Pi Network integration for web3 gaming
--- Author: Development Team
+-- Author: Dev713
 -- Version: 2.0 (Production-Ready)
 -- ============================================================================
 
