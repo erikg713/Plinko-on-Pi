@@ -1,4 +1,4 @@
-# EdgeRush Backend
+# Plinko-on-pi Backend
 
 **Server for EdgeRush – Ultimate Provably Fair Plinko dApp on Pi Network**
 
