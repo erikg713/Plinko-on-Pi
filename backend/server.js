@@ -1097,3 +1097,13 @@ module.exports = {
     start,
     shutdown,
 };
+
+function registerApiRoutes(app) {
+    const adminRoutes =
+        require("./routes/admin");
+
+    app.use(
+        `${config.app.apiPrefix}/admin`,
+        adminRoutes
+    );
+}
