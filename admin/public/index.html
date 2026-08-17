@@ -2,44 +2,54 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a0a" />
-    <meta
-      name="description"
-      content="EdgeRush Admin Panel - Provably fair Plinko gambling dApp on Pi Network"
-    />
+    <meta name="description" content="EdgeRush Admin Panel - Provably fair Plinko gambling dApp on Pi Network" />
+    <!-- Do not index admin panel in search engines -->
+    <meta name="robots" content="noindex,nofollow" />
 
     <!-- Google Fonts - Orbitron for titles, Roboto Mono for code/seeds -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-    <!-- Manifest & Icons (add your own later) -->
+    <!-- Manifest & Icons -->
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
 
     <title>EdgeRush Admin | Plinko on Pi Network</title>
 
     <style>
-      /* Preload dark background - no flash of white */
-      body {
-        margin: 0;
-        background: #0a0a0a;
-        color: #e0e0e0;
+      :root{
+        --bg: #0a0a0a;
+        --muted: #888;
+        --text: #e0e0e0;
+        --accent1: #ff0066;
+        --accent2: #00ffcc;
       }
 
-      /* Loading screen - degen style */
+      /* Preload dark background - avoids flash of white */
+      html,body{
+        height:100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      }
+
+      /* Root for SPA - keeps page height */
       #root {
         min-height: 100vh;
       }
 
+      /* Loading screen - disappears when app is ready */
       .loading-screen {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        inset: 0;
         background: linear-gradient(135deg, #0f0f1a, #1a0b1f);
         display: flex;
         flex-direction: column;
@@ -47,11 +57,21 @@
         align-items: center;
         z-index: 9999;
         font-family: 'Orbitron', sans-serif;
+        color: var(--text);
+        transition: opacity 0.45s ease, visibility 0.45s ease;
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .loading-screen.hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
       }
 
       .logo-loading {
-        font-size: 4rem;
-        background: linear-gradient(90deg, #ff0066, #00ffcc);
+        font-size: clamp(2rem, 4vw, 4rem);
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         margin-bottom: 1rem;
@@ -60,8 +80,8 @@
       .spinner {
         width: 60px;
         height: 60px;
-        border: 6px solid rgba(255, 0, 102, 0.2);
-        border-top: 6px solid #ff0066;
+        border: 6px solid rgba(255, 0, 102, 0.18);
+        border-top: 6px solid var(--accent1);
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -70,30 +90,92 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
       }
+
+      /* Respect user's reduced motion preference */
+      @media (prefers-reduced-motion: reduce) {
+        .spinner, .logo-loading {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+
+      /* Visually hidden (screen-reader-only) */
+      .sr-only {
+        position: absolute !important;
+        height: 1px; width: 1px;
+        overflow: hidden;
+        clip: rect(1px, 1px, 1px, 1px);
+        white-space: nowrap;
+      }
+
+      /* Simple noscript overlay to communicate JS requirement */
+      .no-js-warning {
+        position: fixed;
+        inset: 0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: rgba(10,10,10,0.95);
+        color: #fff;
+        z-index: 10000;
+        text-align:center;
+        padding: 1rem;
+      }
     </style>
   </head>
 
   <body>
-    <noscript>You need to enable JavaScript to run EdgeRush Admin.</noscript>
+    <noscript>
+      <div class="no-js-warning">
+        <div>
+          <strong>JavaScript is required</strong>
+          <div style="margin-top:0.5rem; color:#ddd">Enable JavaScript to run EdgeRush Admin.</div>
+        </div>
+      </div>
+    </noscript>
 
-    <!-- Loading Screen - disappears when React mounts -->
-    <div class="loading-screen" id="loading">
+    <!-- Loading Screen - add ARIA for accessibility -->
+    <div id="loading" class="loading-screen" role="status" aria-live="polite" aria-label="Loading application">
       <div class="logo-loading">EdgeRush</div>
-      <div class="spinner"></div>
-      <p style="margin-top: 2rem; color: #888;">Loading admin panel...</p>
+      <div class="spinner" aria-hidden="true"></div>
+      <p style="margin-top: 2rem; color: var(--muted);">Loading admin panel...</p>
+      <div class="sr-only" id="loading-sr">Application is starting, please wait.</div>
     </div>
 
-    <div id="root"></div>
+    <div id="root" aria-busy="true"></div>
 
     <script>
-      // Remove loading screen when app is ready
-      window.addEventListener('load', () => {
-        const loading = document.getElementById('loading');
-        if (loading) {
-          loading.style.opacity = '0';
-          setTimeout(() => loading.remove(), 500);
-        }
-      });
+      /* 
+        Better removal of the loading screen:
+        - Primary: wait for the app to emit a custom "app-ready" event when React mounts.
+        - Fallback: window 'load' event (last resort).
+        - This lets your React app remove the loader immediately on mount instead of waiting for all resources.
+        Usage in your main JS/React entry (e.g. index.js):
+          window.dispatchEvent(new Event('app-ready'));
+      */
+      (function () {
+        const removeLoading = () => {
+          const loading = document.getElementById('loading');
+          const root = document.getElementById('root');
+          if (!loading) return;
+          loading.classList.add('hidden');
+          // Mark the app as ready for assistive tech
+          if (root) root.removeAttribute('aria-busy');
+          // fully remove from DOM after the fade
+          setTimeout(() => {
+            if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
+          }, 600);
+        };
+
+        // If your app triggers this event when React mounts, loader hides immediately.
+        window.addEventListener('app-ready', removeLoading, { once: true });
+
+        // Fallback for traditional page load (least preferred)
+        window.addEventListener('load', () => {
+          // Give the app a small moment to dispatch app-ready first
+          setTimeout(removeLoading, 250);
+        });
+      })();
     </script>
   </body>
 </html>
