@@ -1,181 +1,1165 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0a0a" />
-    <meta name="description" content="EdgeRush Admin Panel - Provably fair Plinko gambling dApp on Pi Network" />
-    <!-- Do not index admin panel in search engines -->
-    <meta name="robots" content="noindex,nofollow" />
+<head>
+    <meta charset="UTF-8">
 
-    <!-- Google Fonts - Orbitron for titles, Roboto Mono for code/seeds -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <!-- Manifest & Icons -->
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta
+        name="theme-color"
+        content="#0b1020"
+    >
 
-    <title>EdgeRush Admin | Plinko on Pi Network</title>
+    <meta
+        name="description"
+        content="Plinko-on-Pi administration dashboard"
+    >
 
-    <style>
-      :root{
-        --bg: #0a0a0a;
-        --muted: #888;
-        --text: #e0e0e0;
-        --accent1: #ff0066;
-        --accent2: #00ffcc;
-      }
+    <title>Plinko-on-Pi Admin</title>
 
-      /* Preload dark background - avoids flash of white */
-      html,body{
-        height:100%;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      }
+    <link
+        rel="icon"
+        type="image/svg+xml"
+        href="/favicon.svg"
+    >
 
-      /* Root for SPA - keeps page height */
-      #root {
-        min-height: 100vh;
-      }
+    <link
+        rel="stylesheet"
+        href="/assets/css/admin.css"
+    >
+</head>
 
-      /* Loading screen - disappears when app is ready */
-      .loading-screen {
-        position: fixed;
-        inset: 0;
-        background: linear-gradient(135deg, #0f0f1a, #1a0b1f);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        font-family: 'Orbitron', sans-serif;
-        color: var(--text);
-        transition: opacity 0.45s ease, visibility 0.45s ease;
-        opacity: 1;
-        visibility: visible;
-      }
+<body>
 
-      .loading-screen.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
+    <!-- Mobile sidebar overlay -->
+    <div
+        id="sidebarOverlay"
+        class="sidebar-overlay"
+        aria-hidden="true"
+    ></div>
 
-      .logo-loading {
-        font-size: clamp(2rem, 4vw, 4rem);
-        background: linear-gradient(90deg, var(--accent1), var(--accent2));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 1rem;
-      }
 
-      .spinner {
-        width: 60px;
-        height: 60px;
-        border: 6px solid rgba(255, 0, 102, 0.18);
-        border-top: 6px solid var(--accent1);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
+    <div class="admin-layout">
 
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
+        <!-- =================================================
+             SIDEBAR
+             ================================================= -->
 
-      /* Respect user's reduced motion preference */
-      @media (prefers-reduced-motion: reduce) {
-        .spinner, .logo-loading {
-          animation: none !important;
-          transition: none !important;
-        }
-      }
+        <aside
+            id="sidebar"
+            class="sidebar"
+            aria-label="Administration navigation"
+        >
 
-      /* Visually hidden (screen-reader-only) */
-      .sr-only {
-        position: absolute !important;
-        height: 1px; width: 1px;
-        overflow: hidden;
-        clip: rect(1px, 1px, 1px, 1px);
-        white-space: nowrap;
-      }
+            <div class="sidebar-header">
 
-      /* Simple noscript overlay to communicate JS requirement */
-      .no-js-warning {
-        position: fixed;
-        inset: 0;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background: rgba(10,10,10,0.95);
-        color: #fff;
-        z-index: 10000;
-        text-align:center;
-        padding: 1rem;
-      }
-    </style>
-  </head>
+                <a
+                    href="#dashboard"
+                    class="sidebar-brand"
+                    data-page="dashboard"
+                    aria-label="Plinko-on-Pi Dashboard"
+                >
 
-  <body>
-    <noscript>
-      <div class="no-js-warning">
-        <div>
-          <strong>JavaScript is required</strong>
-          <div style="margin-top:0.5rem; color:#ddd">Enable JavaScript to run EdgeRush Admin.</div>
+                    <span
+                        class="sidebar-brand-icon"
+                        aria-hidden="true"
+                    >
+                        π
+                    </span>
+
+                    <span class="sidebar-brand-text">
+                        Plinko-on-Pi
+                    </span>
+
+                </a>
+
+            </div>
+
+
+            <nav class="sidebar-nav">
+
+                <!-- Main -->
+
+                <div class="nav-section">
+
+                    <div class="nav-section-title">
+                        Main
+                    </div>
+
+                    <button
+                        type="button"
+                        class="nav-item active"
+                        data-page="dashboard"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            ◈
+                        </span>
+
+                        <span>Dashboard</span>
+                    </button>
+
+                </div>
+
+
+                <!-- Operations -->
+
+                <div class="nav-section">
+
+                    <div class="nav-section-title">
+                        Operations
+                    </div>
+
+                    <button
+                        type="button"
+                        class="nav-item"
+                        data-page="games"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            ◆
+                        </span>
+
+                        <span>Games</span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="nav-item"
+                        data-page="players"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            ●
+                        </span>
+
+                        <span>Players</span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="nav-item"
+                        data-page="transactions"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            $
+                        </span>
+
+                        <span>Transactions</span>
+                    </button>
+
+                </div>
+
+
+                <!-- System -->
+
+                <div class="nav-section">
+
+                    <div class="nav-section-title">
+                        System
+                    </div>
+
+                    <button
+                        type="button"
+                        class="nav-item"
+                        data-page="health"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            +
+                        </span>
+
+                        <span>System Health</span>
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="nav-item"
+                        data-page="logs"
+                    >
+                        <span
+                            class="nav-item-icon"
+                            aria-hidden="true"
+                        >
+                            ≡
+                        </span>
+
+                        <span>Event Logs</span>
+                    </button>
+
+                </div>
+
+            </nav>
+
+
+            <div class="sidebar-footer">
+
+                <button
+                    id="logoutButton"
+                    type="button"
+                    class="btn btn-danger"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =================================================
+             MAIN
+             ================================================= -->
+
+        <div class="main-wrapper">
+
+            <!-- Topbar -->
+
+            <header class="topbar">
+
+                <div class="topbar-left">
+
+                    <button
+                        id="menuButton"
+                        class="menu-button"
+                        type="button"
+                        aria-label="Open navigation"
+                        aria-expanded="false"
+                        aria-controls="sidebar"
+                    >
+                        ☰
+                    </button>
+
+
+                    <div class="page-heading">
+
+                        <h1
+                            id="pageTitle"
+                            class="page-title"
+                        >
+                            Dashboard
+                        </h1>
+
+                        <p
+                            id="pageDescription"
+                            class="page-description"
+                        >
+                            Plinko-on-Pi administration
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="topbar-right">
+
+                    <div
+                        id="connectionStatus"
+                        class="connection-status"
+                        role="status"
+                        aria-live="polite"
+                    >
+
+                        <span
+                            id="connectionDot"
+                            class="connection-dot"
+                            aria-hidden="true"
+                        ></span>
+
+                        <span id="connectionText">
+                            Connecting...
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        id="refreshButton"
+                        type="button"
+                        class="btn"
+                    >
+                        Refresh
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            <!-- =================================================
+                 CONTENT
+                 ================================================= -->
+
+            <main
+                id="mainContent"
+                class="main-content"
+            >
+
+                <!-- =============================================
+                     DASHBOARD
+                     ============================================= -->
+
+                <section
+                    id="page-dashboard"
+                    class="page active"
+                    data-page-content="dashboard"
+                >
+
+                    <div class="stats-grid">
+
+                        <!-- Players -->
+
+                        <article class="stat-card">
+
+                            <div class="stat-card-header">
+
+                                <span class="stat-label">
+                                    Players
+                                </span>
+
+                                <span
+                                    class="stat-icon"
+                                    aria-hidden="true"
+                                >
+                                    ●
+                                </span>
+
+                            </div>
+
+                            <div
+                                id="statPlayers"
+                                class="stat-value"
+                            >
+                                —
+                            </div>
+
+                            <div class="stat-description">
+                                Registered players
+                            </div>
+
+                        </article>
+
+
+                        <!-- Games -->
+
+                        <article class="stat-card">
+
+                            <div class="stat-card-header">
+
+                                <span class="stat-label">
+                                    Games
+                                </span>
+
+                                <span
+                                    class="stat-icon"
+                                    aria-hidden="true"
+                                >
+                                    ◆
+                                </span>
+
+                            </div>
+
+                            <div
+                                id="statGames"
+                                class="stat-value"
+                            >
+                                —
+                            </div>
+
+                            <div class="stat-description">
+                                Total Plinko games
+                            </div>
+
+                        </article>
+
+
+                        <!-- Wagered -->
+
+                        <article class="stat-card">
+
+                            <div class="stat-card-header">
+
+                                <span class="stat-label">
+                                    Wagered
+                                </span>
+
+                                <span
+                                    class="stat-icon"
+                                    aria-hidden="true"
+                                >
+                                    π
+                                </span>
+
+                            </div>
+
+                            <div
+                                id="statWagered"
+                                class="stat-value"
+                            >
+                                —
+                            </div>
+
+                            <div class="stat-description">
+                                Total wager volume
+                            </div>
+
+                        </article>
+
+
+                        <!-- Payouts -->
+
+                        <article class="stat-card">
+
+                            <div class="stat-card-header">
+
+                                <span class="stat-label">
+                                    Payouts
+                                </span>
+
+                                <span
+                                    class="stat-icon"
+                                    aria-hidden="true"
+                                >
+                                    ↗
+                                </span>
+
+                            </div>
+
+                            <div
+                                id="statPayouts"
+                                class="stat-value"
+                            >
+                                —
+                            </div>
+
+                            <div class="stat-description">
+                                Total player payouts
+                            </div>
+
+                        </article>
+
+                    </div>
+
+
+                    <!-- Dashboard cards -->
+
+                    <div class="card-grid">
+
+                        <!-- Recent games -->
+
+                        <section class="card">
+
+                            <header class="card-header">
+
+                                <div>
+
+                                    <h2 class="card-title">
+                                        Recent Games
+                                    </h2>
+
+                                    <p class="card-description">
+                                        Latest Plinko activity
+                                    </p>
+
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm"
+                                    data-page="games"
+                                >
+                                    View all
+                                </button>
+
+                            </header>
+
+
+                            <div class="table-wrapper">
+
+                                <table class="data-table">
+
+                                    <thead>
+
+                                        <tr>
+                                            <th>Game</th>
+                                            <th>Player</th>
+                                            <th>Wager</th>
+                                            <th>Payout</th>
+                                            <th>Status</th>
+                                        </tr>
+
+                                    </thead>
+
+                                    <tbody id="recentGames">
+
+                                        <tr>
+
+                                            <td
+                                                colspan="5"
+                                                class="empty"
+                                            >
+                                                Loading...
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- System status -->
+
+                        <section class="card">
+
+                            <header class="card-header">
+
+                                <div>
+
+                                    <h2 class="card-title">
+                                        System Status
+                                    </h2>
+
+                                    <p class="card-description">
+                                        Core service availability
+                                    </p>
+
+                                </div>
+
+                            </header>
+
+
+                            <div class="card-body">
+
+                                <div id="systemStatus">
+
+                                    <div class="health-row">
+
+                                        <span>API</span>
+
+                                        <span
+                                            class="status-badge neutral"
+                                        >
+                                            Checking
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="health-row">
+
+                                        <span>Database</span>
+
+                                        <span
+                                            class="status-badge neutral"
+                                        >
+                                            Checking
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="health-row">
+
+                                        <span>Game Engine</span>
+
+                                        <span
+                                            class="status-badge neutral"
+                                        >
+                                            Checking
+                                        </span>
+
+                                    </div>
+
+
+                                    <div class="health-row">
+
+                                        <span>Pi Network</span>
+
+                                        <span
+                                            class="status-badge neutral"
+                                        >
+                                            Checking
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </section>
+
+                    </div>
+
+
+                    <!-- Recent events -->
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    Recent Events
+                                </h2>
+
+                                <p class="card-description">
+                                    Latest administrative events
+                                </p>
+
+                            </div>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div id="logsContainer">
+
+                                <div class="empty">
+                                    Loading events...
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+
+                <!-- =============================================
+                     GAMES
+                     ============================================= -->
+
+                <section
+                    id="page-games"
+                    class="page"
+                    data-page-content="games"
+                >
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    Games
+                                </h2>
+
+                                <p class="card-description">
+                                    Review Plinko game rounds
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="gamesRefreshButton"
+                                type="button"
+                                class="btn btn-sm"
+                            >
+                                Refresh
+                            </button>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div class="toolbar">
+
+                                <div class="toolbar-left">
+
+                                    <div class="search-wrapper">
+
+                                        <span
+                                            class="search-icon"
+                                            aria-hidden="true"
+                                        >
+                                            ⌕
+                                        </span>
+
+                                        <input
+                                            id="gamesSearch"
+                                            type="search"
+                                            placeholder="Search games..."
+                                            autocomplete="off"
+                                        >
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="table-wrapper">
+
+                            <table class="data-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>Game</th>
+                                        <th>Player</th>
+                                        <th>Wager</th>
+                                        <th>Multiplier</th>
+                                        <th>Payout</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="gamesTable">
+
+                                    <tr>
+
+                                        <td
+                                            colspan="7"
+                                            class="empty"
+                                        >
+                                            Loading...
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <footer class="table-footer">
+
+                            <span id="gamesPaginationInfo">
+                                —
+                            </span>
+
+                            <div
+                                id="gamesPagination"
+                                class="pagination-buttons"
+                            ></div>
+
+                        </footer>
+
+                    </section>
+
+                </section>
+
+
+                <!-- =============================================
+                     PLAYERS
+                     ============================================= -->
+
+                <section
+                    id="page-players"
+                    class="page"
+                    data-page-content="players"
+                >
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    Players
+                                </h2>
+
+                                <p class="card-description">
+                                    Registered Plinko-on-Pi players
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="playersRefreshButton"
+                                type="button"
+                                class="btn btn-sm"
+                            >
+                                Refresh
+                            </button>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div class="search-wrapper">
+
+                                <span
+                                    class="search-icon"
+                                    aria-hidden="true"
+                                >
+                                    ⌕
+                                </span>
+
+                                <input
+                                    id="playersSearch"
+                                    type="search"
+                                    placeholder="Search players..."
+                                    autocomplete="off"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="table-wrapper">
+
+                            <table class="data-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Player</th>
+                                        <th>Wallet</th>
+                                        <th>Games</th>
+                                        <th>Balance</th>
+                                        <th>Status</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="playersTable">
+
+                                    <tr>
+
+                                        <td
+                                            colspan="6"
+                                            class="empty"
+                                        >
+                                            Loading...
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <footer class="table-footer">
+
+                            <span id="playersPaginationInfo">
+                                —
+                            </span>
+
+                            <div
+                                id="playersPagination"
+                                class="pagination-buttons"
+                            ></div>
+
+                        </footer>
+
+                    </section>
+
+                </section>
+
+
+                <!-- =============================================
+                     TRANSACTIONS
+                     ============================================= -->
+
+                <section
+                    id="page-transactions"
+                    class="page"
+                    data-page-content="transactions"
+                >
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    Transactions
+                                </h2>
+
+                                <p class="card-description">
+                                    Pi payment and transaction activity
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="transactionsRefreshButton"
+                                type="button"
+                                class="btn btn-sm"
+                            >
+                                Refresh
+                            </button>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div class="search-wrapper">
+
+                                <span
+                                    class="search-icon"
+                                    aria-hidden="true"
+                                >
+                                    ⌕
+                                </span>
+
+                                <input
+                                    id="transactionsSearch"
+                                    type="search"
+                                    placeholder="Search transactions..."
+                                    autocomplete="off"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="table-wrapper">
+
+                            <table class="data-table">
+
+                                <thead>
+
+                                    <tr>
+                                        <th>Transaction</th>
+                                        <th>Player</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="transactionsTable">
+
+                                    <tr>
+
+                                        <td
+                                            colspan="6"
+                                            class="empty"
+                                        >
+                                            Loading...
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <footer class="table-footer">
+
+                            <span id="transactionsPaginationInfo">
+                                —
+                            </span>
+
+                            <div
+                                id="transactionsPagination"
+                                class="pagination-buttons"
+                            ></div>
+
+                        </footer>
+
+                    </section>
+
+                </section>
+
+
+                <!-- =============================================
+                     HEALTH
+                     ============================================= -->
+
+                <section
+                    id="page-health"
+                    class="page"
+                    data-page-content="health"
+                >
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    System Health
+                                </h2>
+
+                                <p class="card-description">
+                                    Plinko-on-Pi infrastructure status
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="healthRefreshButton"
+                                type="button"
+                                class="btn btn-sm"
+                            >
+                                Refresh
+                            </button>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div id="healthCards">
+
+                                <div class="empty">
+                                    Loading system health...
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+
+                <!-- =============================================
+                     LOGS
+                     ============================================= -->
+
+                <section
+                    id="page-logs"
+                    class="page"
+                    data-page-content="logs"
+                >
+
+                    <section class="card">
+
+                        <header class="card-header">
+
+                            <div>
+
+                                <h2 class="card-title">
+                                    Event Logs
+                                </h2>
+
+                                <p class="card-description">
+                                    Administrative and system events
+                                </p>
+
+                            </div>
+
+                            <button
+                                id="logsRefreshButton"
+                                type="button"
+                                class="btn btn-sm"
+                            >
+                                Refresh
+                            </button>
+
+                        </header>
+
+
+                        <div class="card-body">
+
+                            <div id="logsPageContainer">
+
+                                <div id="logsPageList">
+
+                                    <div class="empty">
+                                        Loading events...
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                </section>
+
+            </main>
+
         </div>
-      </div>
-    </noscript>
 
-    <!-- Loading Screen - add ARIA for accessibility -->
-    <div id="loading" class="loading-screen" role="status" aria-live="polite" aria-label="Loading application">
-      <div class="logo-loading">EdgeRush</div>
-      <div class="spinner" aria-hidden="true"></div>
-      <p style="margin-top: 2rem; color: var(--muted);">Loading admin panel...</p>
-      <div class="sr-only" id="loading-sr">Application is starting, please wait.</div>
     </div>
 
-    <div id="root" aria-busy="true"></div>
 
-    <script>
-      /* 
-        Better removal of the loading screen:
-        - Primary: wait for the app to emit a custom "app-ready" event when React mounts.
-        - Fallback: window 'load' event (last resort).
-        - This lets your React app remove the loader immediately on mount instead of waiting for all resources.
-        Usage in your main JS/React entry (e.g. index.js):
-          window.dispatchEvent(new Event('app-ready'));
-      */
-      (function () {
-        const removeLoading = () => {
-          const loading = document.getElementById('loading');
-          const root = document.getElementById('root');
-          if (!loading) return;
-          loading.classList.add('hidden');
-          // Mark the app as ready for assistive tech
-          if (root) root.removeAttribute('aria-busy');
-          // fully remove from DOM after the fade
-          setTimeout(() => {
-            if (loading && loading.parentNode) loading.parentNode.removeChild(loading);
-          }, 600);
-        };
+    <!-- =====================================================
+         TOASTS
+         ===================================================== -->
 
-        // If your app triggers this event when React mounts, loader hides immediately.
-        window.addEventListener('app-ready', removeLoading, { once: true });
+    <div
+        id="toastContainer"
+        class="toast-container"
+        aria-live="polite"
+        aria-atomic="true"
+    ></div>
 
-        // Fallback for traditional page load (least preferred)
-        window.addEventListener('load', () => {
-          // Give the app a small moment to dispatch app-ready first
-          setTimeout(removeLoading, 250);
-        });
-      })();
-    </script>
-  </body>
-</html>
+
+    <!-- =====================================================
+         APPLICATION SCRIPTS
+         ===================================================== -->
+
+    <script
+        src="/assets/js/config.js"
+        defer
+    ></script>
+
+    <script
+        src="/assets/js/api.js"
+        defer
+    ></script>
+
+    <script
+        src="/assets/js/dashboard.js"
+        defer
+    ></script>
+
+    <script
+        src="/assets/js/app.js"
+        defer
+    ></script>
+
+</body>
+                                                        </html>
