@@ -1,1 +1,14 @@
+# Plinko-on-Pi Admin
+# Administrative interface — do not crawl or index.
 
+User-agent: *
+Disallow: /
+
+# Keep administrative routes out of search engines.
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /login/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /internal/
