@@ -10,6 +10,66 @@
  *
  * Everything in /public is visible to the browser.
  */
+(function (window) {
+    "use strict";
+
+    const root =
+        document.documentElement;
+
+    const env =
+        window.__PLINKO_ADMIN_CONFIG__ ||
+        {};
+
+    const apiBase =
+        env.apiBase ||
+        root.dataset.apiBase ||
+        "/api";
+
+    const appName =
+        env.appName ||
+        "Plinko-on-Pi Admin";
+
+    const appVersion =
+        env.version ||
+        "1.0.0";
+
+    window.PLINKO_ADMIN_CONFIG = {
+        apiBase: String(apiBase).replace(
+            /\/+$/,
+            ""
+        ),
+
+        appName,
+
+        version: appVersion,
+
+        requestTimeout:
+            Number(
+                env.requestTimeout
+            ) || 15000,
+
+        pagination: {
+            defaultLimit: 50,
+            maxLimit: 250,
+        },
+
+        polling: {
+            health: 10000,
+            dashboard: 15000,
+            logs: 5000,
+        },
+
+        features: {
+            seeds: true,
+            games: true,
+            players: true,
+            transactions: true,
+            health: true,
+            logs: true,
+            settings: true,
+        },
+    };
+})(window);
 
 (() => {
     "use strict";
