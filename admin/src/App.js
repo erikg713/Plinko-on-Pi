@@ -1,171 +1,2501 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
-import SeedsManager from './components/SeedsManager';
+/*
+ * Plinko-on-Pi Admin
+ * admin/src/App.js
+ */
 
-// In render:
-{activeTab === 'seeds' && <SeedsManager />}
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
-function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentSeed, setCurrentSeed] = useState('a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef');
-  const [hashedSeed, setHashedSeed] = useState('sha256: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069');
-  const [newSeed, setNewSeed] = useState('');
+import "./App.css";
 
-  // Mock data - replace with real API calls later
-  const stats = {
-    totalBets: 12457,
-    totalVolume: '892,341 Pi',
-    activePlayers: 342,
-    houseProfit: '8,923 Pi',
-  };
 
-  const recentBets = [
-    { id: 'BET-8921', user: 'pioneer_abc123', amount: 50, multiplier: 'x130', win: 6500, time: '2 min ago' },
-    { id: 'BET-8920', user: 'degen_xyz', amount: 100, multiplier: 'x0.5', win: 0, time: '3 min ago' },
-    { id: 'BET-8919', user: 'moonboy_69', amount: 10, multiplier: 'x1000', win: 10000, time: '5 min ago' },
-    { id: 'BET-8918', user: 'pi_whale', amount: 500, multiplier: 'x9', win: 4500, time: '8 min ago' },
-  ];
+/* =========================================================
+   CONFIG
+   ========================================================= */
 
-  const rotateSeed = () => {
-    if (!newSeed) return alert('Enter a new seed, degen.');
-    setCurrentSeed(newSeed);
-    setHashedSeed(`sha256: ${Math.random().toString(36).substring(2)}`); // Mock hash
-    setNewSeed('');
-    alert('Server seed rotated. New hashed seed published to players.');
-  };
+const API_BASE =
+    (
+        process.env.REACT_APP_API_URL ||
+        "/api"
+    ).replace(/\/+$/, "");
 
-  return (
-    <div className="App">
-      {/* Header */}
-      <header className="admin-header">
-        <div className="logo">EdgeRush Admin</div>
-        <div className="status-indicator">
-          <div className="status-dot"></div>
-          <span>LIVE - Mainnet</span>
-        </div>
-      </header>
 
-      {/* Sidebar */}
-      <aside className="sidebar">
-        <div className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>
-          Dashboard
-        </div>
-        <div className={`nav-item ${activeTab === 'bets' ? 'active' : ''}`} onClick={() => setActiveTab('bets')}>
-          Bet History
-        </div>
-        <div className={`nav-item ${activeTab === 'seeds' ? 'active' : ''}`} onClick={() => setActiveTab('seeds')}>
-          Provably Fair Seeds
-        </div>
-        <div className={`nav-item ${activeTab === 'players' ? 'active' : ''}`} onClick={() => setActiveTab('players')}>
-          Players
-        </div>
-        <div className={`nav-item ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')}>
-          Manual Payouts
-        </div>
-      </aside>
+const PAGE_META = {
+    dashboard: {
+        title: "Dashboard",
+        description: "Plinko-on-Pi administration",
+    },
 
-      {/* Main Content */}
-      <main className="main-content">
-        {activeTab === 'dashboard' && (
-          <>
-            <h1>Dashboard</h1>
-            <div className="dashboard-grid">
-              <div className="stat-card">
-                <div className="stat-label">Total Bets Today</div>
-                <div className="stat-value">{stats.totalBets.toLocaleString()}</div>
-                <div className="stat-change positive">+18.4%</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Total Volume</div>
-                <div className="stat-value">{stats.totalVolume}</div>
-                <div className="stat-change positive">+42.1%</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">Active Players</div>
-                <div className="stat-value">{stats.activePlayers}</div>
-                <div className="stat-change positive">+67 online</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-label">House Profit (24h)</div>
-                <div className="stat-value">{stats.houseProfit}</div>
-                <div className="stat-change positive">+1.0% edge</div>
-              </div>
-            </div>
+    games: {
+        title: "Games",
+        description: "Review Plinko game rounds",
+    },
 
-            <h2>Recent Big Wins</h2>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Bet ID</th>
-                  <th>User</th>
-                  <th>Bet Amount</th>
-                  <th>Multiplier</th>
-                  <th>Win</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBets.map(bet => (
-                  <tr key={bet.id}>
-                    <td>{bet.id}</td>
-                    <td>{bet.user}</td>
-                    <td>{bet.amount} Pi</td>
-                    <td style={{ color: bet.multiplier.includes('x0') ? '#ff3366' : '#00ff88' }}>
-                      {bet.multiplier}
-                    </td>
-                    <td style={{ color: bet.win > 0 ? '#00ff88' : '#ff3366' }}>
-                      {bet.win > 0 ? `+${bet.win}` : 'Bust'}
-                    </td>
-                    <td>{bet.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
+    players: {
+        title: "Players",
+        description: "Registered Plinko-on-Pi players",
+    },
 
-        {activeTab === 'seeds' && (
-          <>
-            <h1>Provably Fair Seed Management</h1>
-            <div className="stat-card">
-              <h3>Current Server Seed (Hidden)</h3>
-              <div className="seed-box current-seed">{currentSeed}</div>
+    transactions: {
+        title: "Transactions",
+        description: "Pi payment and transaction activity",
+    },
 
-              <h3>Hashed Seed (Public - Shown to Players)</h3>
-              <div className="seed-box hashed-seed">{hashedSeed}</div>
+    health: {
+        title: "System Health",
+        description: "Plinko-on-Pi infrastructure status",
+    },
 
-              <h3>Rotate Server Seed</h3>
-              <input
-                type="text"
-                placeholder="Enter new random 64-char hex seed"
-                value={newSeed}
-                onChange={(e) => setNewSeed(e.target.value)}
-                style={{ width: '100%', padding: '1rem', margin: '1rem 0', background: '#111', border: '1px solid #444', color: '#fff' }}
-              />
-              <button className="btn btn-primary" onClick={rotateSeed}>
-                Rotate Seed & Publish New Hash
-              </button>
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#888' }}>
-                Players can verify all past bets with revealed old seeds. New hash is live immediately.
-              </p>
-            </div>
-          </>
-        )}
+    logs: {
+        title: "Event Logs",
+        description: "Administrative and system events",
+    },
+};
 
-        {activeTab === 'bets' && (
-          <><h1>Full Bet History</h1><p>Table + filters coming soon, degen.</p></>
-        )}
 
-        {activeTab === 'players' && (
-          <><h1>Player Management</h1><p>Search, ban, view stats – next update.</p></>
-        )}
+/* =========================================================
+   API HELPER
+   ========================================================= */
 
-        {activeTab === 'payouts' && (
-          <><h1>Manual Payouts</h1><p>For disputes or bonuses – secure Pi.transfer coming.</p></>
-        )}
-      </main>
-    </div>
-  );
+async function apiRequest(
+    path,
+    options = {}
+) {
+    const {
+        method = "GET",
+        body,
+        headers = {},
+        signal,
+    } = options;
+
+    const requestHeaders = {
+        Accept: "application/json",
+        ...headers,
+    };
+
+    if (body !== undefined) {
+        requestHeaders["Content-Type"] =
+            "application/json";
+    }
+
+    const response = await fetch(
+        `${API_BASE}${path}`,
+        {
+            method,
+            headers: requestHeaders,
+            credentials: "include",
+            body:
+                body === undefined
+                    ? undefined
+                    : JSON.stringify(body),
+            signal,
+        }
+    );
+
+    const contentType =
+        response.headers.get("content-type") || "";
+
+    let payload = null;
+
+    if (
+        contentType.includes(
+            "application/json"
+        )
+    ) {
+        payload = await response.json();
+    } else {
+        const text =
+            await response.text();
+
+        payload = text
+            ? { message: text }
+            : null;
+    }
+
+    if (!response.ok) {
+        const error =
+            new Error(
+                payload?.message ||
+                payload?.error ||
+                `Request failed (${response.status})`
+            );
+
+        error.status =
+            response.status;
+
+        error.payload =
+            payload;
+
+        throw error;
+    }
+
+    return payload;
 }
 
-export default App;
+
+/* =========================================================
+   NORMALIZERS
+   ========================================================= */
+
+function asArray(value) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (
+        value &&
+        Array.isArray(value.data)
+    ) {
+        return value.data;
+    }
+
+    if (
+        value &&
+        Array.isArray(value.items)
+    ) {
+        return value.items;
+    }
+
+    if (
+        value &&
+        Array.isArray(value.results)
+    ) {
+        return value.results;
+    }
+
+    return [];
+}
+
+
+function asNumber(
+    value,
+    fallback = 0
+) {
+    const number =
+        Number(value);
+
+    return Number.isFinite(number)
+        ? number
+        : fallback;
+}
+
+
+function formatNumber(
+    value
+) {
+    return asNumber(value).toLocaleString(
+        undefined,
+        {
+            maximumFractionDigits: 4,
+        }
+    );
+}
+
+
+function formatPi(
+    value
+) {
+    return `${formatNumber(value)} π`;
+}
+
+
+function formatDate(
+    value
+) {
+    if (!value) {
+        return "—";
+    }
+
+    const date =
+        new Date(value);
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+        return String(value);
+    }
+
+    return date.toLocaleString();
+}
+
+
+function getStatusClass(
+    status
+) {
+    const normalized =
+        String(status || "")
+            .toLowerCase();
+
+    if (
+        [
+            "active",
+            "success",
+            "successful",
+            "completed",
+            "complete",
+            "online",
+            "healthy",
+            "confirmed",
+        ].includes(normalized)
+    ) {
+        return "app-status-success";
+    }
+
+    if (
+        [
+            "pending",
+            "processing",
+            "warning",
+            "degraded",
+            "queued",
+        ].includes(normalized)
+    ) {
+        return "app-status-warning";
+    }
+
+    if (
+        [
+            "failed",
+            "failure",
+            "error",
+            "offline",
+            "disabled",
+            "cancelled",
+            "canceled",
+            "rejected",
+        ].includes(normalized)
+    ) {
+        return "app-status-danger";
+    }
+
+    return "app-status-neutral";
+}
+
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+const NAV_SECTIONS = [
+    {
+        title: "Main",
+        items: [
+            {
+                id: "dashboard",
+                label: "Dashboard",
+                icon: "◈",
+            },
+        ],
+    },
+
+    {
+        title: "Operations",
+        items: [
+            {
+                id: "games",
+                label: "Games",
+                icon: "◆",
+            },
+
+            {
+                id: "players",
+                label: "Players",
+                icon: "●",
+            },
+
+            {
+                id: "transactions",
+                label: "Transactions",
+                icon: "$",
+            },
+        ],
+    },
+
+    {
+        title: "System",
+        items: [
+            {
+                id: "health",
+                label: "System Health",
+                icon: "+",
+            },
+
+            {
+                id: "logs",
+                label: "Event Logs",
+                icon: "≡",
+            },
+        ],
+    },
+];
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+function Sidebar({
+    page,
+    onNavigate,
+    open,
+    onLogout,
+}) {
+    return (
+        <aside
+            className={
+                `app-sidebar ${
+                    open ? "open" : ""
+                }`
+            }
+        >
+
+            <div className="app-sidebar-header">
+
+                <div className="app-logo">
+
+                    <span className="app-logo-mark">
+                        π
+                    </span>
+
+                    <span className="app-logo-text">
+                        Plinko-on-Pi
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <nav className="app-nav">
+
+                {NAV_SECTIONS.map(
+                    (section) => (
+                        <div
+                            className="app-nav-section"
+                            key={section.title}
+                        >
+
+                            <div className="app-nav-title">
+                                {section.title}
+                            </div>
+
+
+                            {section.items.map(
+                                (item) => (
+                                    <button
+                                        type="button"
+                                        key={item.id}
+                                        className={
+                                            `app-nav-link ${
+                                                page === item.id
+                                                    ? "active"
+                                                    : ""
+                                            }`
+                                        }
+                                        onClick={() =>
+                                            onNavigate(
+                                                item.id
+                                            )
+                                        }
+                                    >
+
+                                        <span
+                                            className="app-nav-icon"
+                                            aria-hidden="true"
+                                        >
+                                            {item.icon}
+                                        </span>
+
+                                        <span>
+                                            {item.label}
+                                        </span>
+
+                                    </button>
+                                )
+                            )}
+
+                        </div>
+                    )
+                )}
+
+            </nav>
+
+
+            <div className="app-sidebar-footer">
+
+                <button
+                    type="button"
+                    className="app-button app-button-danger"
+                    style={{
+                        width: "100%",
+                    }}
+                    onClick={onLogout}
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </aside>
+    );
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+function Header({
+    page,
+    connection,
+    onMenu,
+    onRefresh,
+}) {
+    const meta =
+        PAGE_META[page] ||
+        PAGE_META.dashboard;
+
+    return (
+        <header className="app-header">
+
+            <div className="app-header-left">
+
+                <button
+                    type="button"
+                    className="app-menu-button"
+                    onClick={onMenu}
+                    aria-label="Open navigation"
+                >
+                    ☰
+                </button>
+
+
+                <div>
+
+                    <h1 className="app-header-title">
+                        {meta.title}
+                    </h1>
+
+                    <p className="app-header-subtitle">
+                        {meta.description}
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div className="app-header-right">
+
+                <div className="app-connection">
+
+                    <span
+                        className={
+                            `app-connection-dot ${
+                                connection
+                                    ? "online"
+                                    : "offline"
+                            }`
+                        }
+                    />
+
+                    <span>
+                        {connection
+                            ? "Connected"
+                            : "Offline"}
+                    </span>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    className="app-button"
+                    onClick={onRefresh}
+                >
+                    Refresh
+                </button>
+
+            </div>
+
+        </header>
+    );
+}
+
+
+/* =========================================================
+   STAT CARD
+   ========================================================= */
+
+function StatCard({
+    label,
+    value,
+    description,
+    icon,
+}) {
+    return (
+        <article className="app-stat-card">
+
+            <div className="app-stat-header">
+
+                <span className="app-stat-label">
+                    {label}
+                </span>
+
+                <span className="app-stat-icon">
+                    {icon}
+                </span>
+
+            </div>
+
+
+            <div className="app-stat-value">
+                {value}
+            </div>
+
+
+            <div className="app-stat-description">
+                {description}
+            </div>
+
+        </article>
+    );
+}
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+function Card({
+    title,
+    description,
+    children,
+    action,
+}) {
+    return (
+        <section className="app-card">
+
+            <header className="app-card-header">
+
+                <div>
+
+                    <h2 className="app-card-title">
+                        {title}
+                    </h2>
+
+                    {description && (
+                        <p className="app-card-description">
+                            {description}
+                        </p>
+                    )}
+
+                </div>
+
+                {action}
+
+            </header>
+
+
+            <div className="app-card-body">
+                {children}
+            </div>
+
+        </section>
+    );
+}
+
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+
+function Dashboard({
+    dashboard,
+    loading,
+    onNavigate,
+}) {
+    const stats =
+        dashboard?.stats || {};
+
+    const games =
+        asArray(
+            dashboard?.recentGames
+        );
+
+    const events =
+        asArray(
+            dashboard?.recentEvents
+        );
+
+    const services =
+        asArray(
+            dashboard?.services
+        );
+
+    return (
+        <div className="app-page">
+
+            <div className="app-dashboard-grid">
+
+                <StatCard
+                    label="Players"
+                    value={
+                        loading
+                            ? "..."
+                            : formatNumber(
+                                stats.players
+                            )
+                    }
+                    description="Registered players"
+                    icon="●"
+                />
+
+
+                <StatCard
+                    label="Games"
+                    value={
+                        loading
+                            ? "..."
+                            : formatNumber(
+                                stats.games
+                            )
+                    }
+                    description="Total Plinko games"
+                    icon="◆"
+                />
+
+
+                <StatCard
+                    label="Wagered"
+                    value={
+                        loading
+                            ? "..."
+                            : formatPi(
+                                stats.wagered
+                            )
+                    }
+                    description="Total wager volume"
+                    icon="π"
+                />
+
+
+                <StatCard
+                    label="Payouts"
+                    value={
+                        loading
+                            ? "..."
+                            : formatPi(
+                                stats.payouts
+                            )
+                    }
+                    description="Total player payouts"
+                    icon="↗"
+                />
+
+            </div>
+
+
+            <div className="app-card-grid">
+
+                <Card
+                    title="Recent Games"
+                    description="Latest Plinko activity"
+                    action={
+                        <button
+                            type="button"
+                            className="app-button app-button-small"
+                            onClick={() =>
+                                onNavigate(
+                                    "games"
+                                )
+                            }
+                        >
+                            View all
+                        </button>
+                    }
+                >
+
+                    <div className="app-table-wrapper">
+
+                        <table className="app-table">
+
+                            <thead>
+
+                                <tr>
+                                    <th>Game</th>
+                                    <th>Player</th>
+                                    <th>Wager</th>
+                                    <th>Payout</th>
+                                    <th>Status</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {games.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan="5"
+                                            className="empty"
+                                        >
+                                            No games found.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    games.map(
+                                        (game, index) => (
+                                            <tr
+                                                key={
+                                                    game.id ||
+                                                    game.game_id ||
+                                                    index
+                                                }
+                                            >
+
+                                                <td className="app-mono">
+                                                    {
+                                                        game.id ||
+                                                        game.game_id ||
+                                                        "—"
+                                                    }
+                                                </td>
+
+                                                <td>
+                                                    {
+                                                        game.player_name ||
+                                                        game.username ||
+                                                        game.player ||
+                                                        "—"
+                                                    }
+                                                </td>
+
+                                                <td>
+                                                    {formatPi(
+                                                        game.wager
+                                                    )}
+                                                </td>
+
+                                                <td>
+                                                    {formatPi(
+                                                        game.payout
+                                                    )}
+                                                </td>
+
+                                                <td>
+
+                                                    <span
+                                                        className={
+                                                            `app-status ${
+                                                                getStatusClass(
+                                                                    game.status
+                                                                )
+                                                            }`
+                                                        }
+                                                    >
+                                                        {
+                                                            game.status ||
+                                                            "unknown"
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+                                            </tr>
+                                        )
+                                    )
+                                )}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </Card>
+
+
+                <Card
+                    title="System Status"
+                    description="Core service availability"
+                >
+
+                    <div>
+
+                        {services.length === 0 ? (
+
+                            <div className="app-loading">
+                                <span>
+                                    No service data available.
+                                </span>
+                            </div>
+
+                        ) : (
+
+                            services.map(
+                                (
+                                    service,
+                                    index
+                                ) => (
+                                    <div
+                                        key={
+                                            service.name ||
+                                            index
+                                        }
+                                        style={{
+                                            display:
+                                                "flex",
+                                            justifyContent:
+                                                "space-between",
+                                            alignItems:
+                                                "center",
+                                            padding:
+                                                "10px 0",
+                                            borderBottom:
+                                                "1px solid var(--app-border)",
+                                        }}
+                                    >
+
+                                        <span>
+                                            {
+                                                service.name ||
+                                                "Service"
+                                            }
+                                        </span>
+
+                                        <span
+                                            className={
+                                                `app-status ${
+                                                    getStatusClass(
+                                                        service.status
+                                                    )
+                                                }`
+                                            }
+                                        >
+                                            {
+                                                service.status ||
+                                                "unknown"
+                                            }
+                                        </span>
+
+                                    </div>
+                                )
+                            )
+
+                        )}
+
+                    </div>
+
+                </Card>
+
+            </div>
+
+
+            <Card
+                title="Recent Events"
+                description="Latest administrative events"
+            >
+
+                <div className="app-log-list">
+
+                    {events.length === 0 ? (
+
+                        <div className="app-loading">
+                            No recent events.
+                        </div>
+
+                    ) : (
+
+                        events.map(
+                            (
+                                event,
+                                index
+                            ) => (
+                                <div
+                                    className="app-log-row"
+                                    key={
+                                        event.id ||
+                                        index
+                                    }
+                                >
+
+                                    <span className="app-log-time">
+                                        {formatDate(
+                                            event.created_at ||
+                                            event.timestamp
+                                        )}
+                                    </span>
+
+                                    <span>
+                                        <span
+                                            className={
+                                                `app-status ${
+                                                    getStatusClass(
+                                                        event.level ||
+                                                        event.status
+                                                    )
+                                                }`
+                                            }
+                                        >
+                                            {
+                                                event.level ||
+                                                event.status ||
+                                                "INFO"
+                                            }
+                                        </span>
+                                    </span>
+
+                                    <span className="app-log-message">
+                                        {
+                                            event.message ||
+                                            event.description ||
+                                            "—"
+                                        }
+                                    </span>
+
+                                </div>
+                            )
+                        )
+
+                    )}
+
+                </div>
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   GENERIC DATA TABLE
+   ========================================================= */
+
+function DataTable({
+    columns,
+    rows,
+    emptyMessage = "No records found.",
+}) {
+    return (
+        <div className="app-table-wrapper">
+
+            <table className="app-table">
+
+                <thead>
+
+                    <tr>
+
+                        {columns.map(
+                            (column) => (
+                                <th
+                                    key={
+                                        column.key
+                                    }
+                                >
+                                    {
+                                        column.label
+                                    }
+                                </th>
+                            )
+                        )}
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {rows.length === 0 ? (
+
+                        <tr>
+
+                            <td
+                                colSpan={
+                                    columns.length
+                                }
+                                className="empty"
+                            >
+                                {emptyMessage}
+                            </td>
+
+                        </tr>
+
+                    ) : (
+
+                        rows.map(
+                            (row, index) => (
+                                <tr
+                                    key={
+                                        row.id ||
+                                        row.game_id ||
+                                        row.transaction_id ||
+                                        index
+                                    }
+                                >
+
+                                    {columns.map(
+                                        (column) => (
+                                            <td
+                                                key={
+                                                    column.key
+                                                }
+                                            >
+                                                {column.render
+                                                    ? column.render(
+                                                        row
+                                                    )
+                                                    : row[
+                                                        column.key
+                                                    ] ?? "—"}
+                                            </td>
+                                        )
+                                    )}
+
+                                </tr>
+                            )
+                        )
+
+                    )}
+
+                </tbody>
+
+            </table>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   SEARCH INPUT
+   ========================================================= */
+
+function SearchInput({
+    value,
+    onChange,
+    placeholder,
+}) {
+    return (
+        <div className="app-search">
+
+            <span
+                className="app-search-icon"
+                aria-hidden="true"
+            >
+                ⌕
+            </span>
+
+            <input
+                className="app-input"
+                type="search"
+                value={value}
+                onChange={(event) =>
+                    onChange(
+                        event.target.value
+                    )
+                }
+                placeholder={
+                    placeholder ||
+                    "Search..."
+                }
+            />
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   GAMES PAGE
+   ========================================================= */
+
+function GamesPage({
+    games,
+    loading,
+    onRefresh,
+}) {
+    const [
+        search,
+        setSearch,
+    ] = useState("");
+
+    const filtered =
+        useMemo(() => {
+            const query =
+                search
+                    .trim()
+                    .toLowerCase();
+
+            if (!query) {
+                return games;
+            }
+
+            return games.filter(
+                (game) =>
+                    JSON.stringify(
+                        game
+                    )
+                        .toLowerCase()
+                        .includes(query)
+            );
+        }, [
+            games,
+            search,
+        ]);
+
+    const columns = [
+        {
+            key: "id",
+            label: "Game",
+            render: (row) => (
+                <span className="app-mono">
+                    {
+                        row.id ||
+                        row.game_id ||
+                        "—"
+                    }
+                </span>
+            ),
+        },
+
+        {
+            key: "player",
+            label: "Player",
+            render: (row) =>
+                row.player_name ||
+                row.username ||
+                row.player ||
+                "—",
+        },
+
+        {
+            key: "wager",
+            label: "Wager",
+            render: (row) =>
+                formatPi(
+                    row.wager
+                ),
+        },
+
+        {
+            key: "multiplier",
+            label: "Multiplier",
+            render: (row) =>
+                row.multiplier != null
+                    ? `${row.multiplier}x`
+                    : "—",
+        },
+
+        {
+            key: "payout",
+            label: "Payout",
+            render: (row) =>
+                formatPi(
+                    row.payout
+                ),
+        },
+
+        {
+            key: "status",
+            label: "Status",
+            render: (row) => (
+                <span
+                    className={
+                        `app-status ${
+                            getStatusClass(
+                                row.status
+                            )
+                        }`
+                    }
+                >
+                    {
+                        row.status ||
+                        "unknown"
+                    }
+                </span>
+            ),
+        },
+
+        {
+            key: "created_at",
+            label: "Created",
+            render: (row) =>
+                formatDate(
+                    row.created_at ||
+                    row.timestamp
+                ),
+        },
+    ];
+
+    return (
+        <div className="app-page">
+
+            <Card
+                title="Games"
+                description="Review Plinko game rounds"
+                action={
+                    <button
+                        type="button"
+                        className="app-button app-button-small"
+                        onClick={onRefresh}
+                    >
+                        Refresh
+                    </button>
+                }
+            >
+
+                <div className="app-toolbar">
+
+                    <div className="app-toolbar-left">
+
+                        <SearchInput
+                            value={search}
+                            onChange={
+                                setSearch
+                            }
+                            placeholder="Search games..."
+                        />
+
+                    </div>
+
+                </div>
+
+
+                {loading ? (
+                    <div className="app-loading">
+                        Loading games...
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={columns}
+                        rows={filtered}
+                        emptyMessage="No games found."
+                    />
+                )}
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   PLAYERS PAGE
+   ========================================================= */
+
+function PlayersPage({
+    players,
+    loading,
+    onRefresh,
+}) {
+    const [
+        search,
+        setSearch,
+    ] = useState("");
+
+    const filtered =
+        useMemo(() => {
+            const query =
+                search
+                    .trim()
+                    .toLowerCase();
+
+            if (!query) {
+                return players;
+            }
+
+            return players.filter(
+                (player) =>
+                    JSON.stringify(
+                        player
+                    )
+                        .toLowerCase()
+                        .includes(query)
+            );
+        }, [
+            players,
+            search,
+        ]);
+
+    const columns = [
+        {
+            key: "id",
+            label: "ID",
+            render: (row) => (
+                <span className="app-mono">
+                    {row.id || "—"}
+                </span>
+            ),
+        },
+
+        {
+            key: "player",
+            label: "Player",
+            render: (row) =>
+                row.username ||
+                row.name ||
+                row.player ||
+                "—",
+        },
+
+        {
+            key: "wallet",
+            label: "Wallet",
+            render: (row) => (
+                <span
+                    className="app-mono"
+                    title={
+                        row.wallet_address ||
+                        row.wallet ||
+                        ""
+                    }
+                >
+                    {truncate(
+                        row.wallet_address ||
+                        row.wallet
+                    )}
+                </span>
+            ),
+        },
+
+        {
+            key: "games",
+            label: "Games",
+            render: (row) =>
+                formatNumber(
+                    row.games_count ??
+                    row.games
+                ),
+        },
+
+        {
+            key: "balance",
+            label: "Balance",
+            render: (row) =>
+                formatPi(
+                    row.balance
+                ),
+        },
+
+        {
+            key: "status",
+            label: "Status",
+            render: (row) => (
+                <span
+                    className={
+                        `app-status ${
+                            getStatusClass(
+                                row.status
+                            )
+                        }`
+                    }
+                >
+                    {
+                        row.status ||
+                        "active"
+                    }
+                </span>
+            ),
+        },
+    ];
+
+    return (
+        <div className="app-page">
+
+            <Card
+                title="Players"
+                description="Registered Plinko-on-Pi players"
+                action={
+                    <button
+                        type="button"
+                        className="app-button app-button-small"
+                        onClick={onRefresh}
+                    >
+                        Refresh
+                    </button>
+                }
+            >
+
+                <div className="app-toolbar">
+
+                    <SearchInput
+                        value={search}
+                        onChange={
+                            setSearch
+                        }
+                        placeholder="Search players..."
+                    />
+
+                </div>
+
+
+                {loading ? (
+                    <div className="app-loading">
+                        Loading players...
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={columns}
+                        rows={filtered}
+                        emptyMessage="No players found."
+                    />
+                )}
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   TRANSACTIONS PAGE
+   ========================================================= */
+
+function TransactionsPage({
+    transactions,
+    loading,
+    onRefresh,
+}) {
+    const [
+        search,
+        setSearch,
+    ] = useState("");
+
+    const filtered =
+        useMemo(() => {
+            const query =
+                search
+                    .trim()
+                    .toLowerCase();
+
+            if (!query) {
+                return transactions;
+            }
+
+            return transactions.filter(
+                (transaction) =>
+                    JSON.stringify(
+                        transaction
+                    )
+                        .toLowerCase()
+                        .includes(query)
+            );
+        }, [
+            transactions,
+            search,
+        ]);
+
+    const columns = [
+        {
+            key: "id",
+            label: "Transaction",
+            render: (row) => (
+                <span className="app-mono">
+                    {
+                        row.id ||
+                        row.transaction_id ||
+                        "—"
+                    }
+                </span>
+            ),
+        },
+
+        {
+            key: "player",
+            label: "Player",
+            render: (row) =>
+                row.player_name ||
+                row.username ||
+                row.player ||
+                "—",
+        },
+
+        {
+            key: "type",
+            label: "Type",
+            render: (row) =>
+                row.type ||
+                row.transaction_type ||
+                "—",
+        },
+
+        {
+            key: "amount",
+            label: "Amount",
+            render: (row) =>
+                formatPi(
+                    row.amount
+                ),
+        },
+
+        {
+            key: "status",
+            label: "Status",
+            render: (row) => (
+                <span
+                    className={
+                        `app-status ${
+                            getStatusClass(
+                                row.status
+                            )
+                        }`
+                    }
+                >
+                    {
+                        row.status ||
+                        "unknown"
+                    }
+                </span>
+            ),
+        },
+
+        {
+            key: "created_at",
+            label: "Created",
+            render: (row) =>
+                formatDate(
+                    row.created_at ||
+                    row.timestamp
+                ),
+        },
+    ];
+
+    return (
+        <div className="app-page">
+
+            <Card
+                title="Transactions"
+                description="Pi payment and transaction activity"
+                action={
+                    <button
+                        type="button"
+                        className="app-button app-button-small"
+                        onClick={onRefresh}
+                    >
+                        Refresh
+                    </button>
+                }
+            >
+
+                <div className="app-toolbar">
+
+                    <SearchInput
+                        value={search}
+                        onChange={
+                            setSearch
+                        }
+                        placeholder="Search transactions..."
+                    />
+
+                </div>
+
+
+                {loading ? (
+                    <div className="app-loading">
+                        Loading transactions...
+                    </div>
+                ) : (
+                    <DataTable
+                        columns={columns}
+                        rows={filtered}
+                        emptyMessage="No transactions found."
+                    />
+                )}
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   HEALTH PAGE
+   ========================================================= */
+
+function HealthPage({
+    health,
+    loading,
+    onRefresh,
+}) {
+    const services =
+        asArray(
+            health?.services ||
+            health
+        );
+
+    return (
+        <div className="app-page">
+
+            <Card
+                title="System Health"
+                description="Plinko-on-Pi infrastructure status"
+                action={
+                    <button
+                        type="button"
+                        className="app-button app-button-small"
+                        onClick={onRefresh}
+                    >
+                        Refresh
+                    </button>
+                }
+            >
+
+                {loading ? (
+
+                    <div className="app-loading">
+                        Loading system health...
+                    </div>
+
+                ) : (
+
+                    <div className="app-health-grid">
+
+                        {services.length === 0 ? (
+
+                            <div className="app-alert app-alert-warning">
+                                No health information was returned by the API.
+                            </div>
+
+                        ) : (
+
+                            services.map(
+                                (
+                                    service,
+                                    index
+                                ) => (
+                                    <div
+                                        className="app-health-card"
+                                        key={
+                                            service.name ||
+                                            index
+                                        }
+                                    >
+
+                                        <div className="app-health-card-header">
+
+                                            <h3 className="app-health-card-title">
+                                                {
+                                                    service.name ||
+                                                    "Service"
+                                                }
+                                            </h3>
+
+                                            <span
+                                                className={
+                                                    `app-status ${
+                                                        getStatusClass(
+                                                            service.status
+                                                        )
+                                                    }`
+                                                }
+                                            >
+                                                {
+                                                    service.status ||
+                                                    "unknown"
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                        <p className="app-health-card-description">
+                                            {
+                                                service.message ||
+                                                service.description ||
+                                                "No additional information."
+                                            }
+                                        </p>
+
+                                    </div>
+                                )
+                            )
+
+                        )}
+
+                    </div>
+
+                )}
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   LOGS PAGE
+   ========================================================= */
+
+function LogsPage({
+    logs,
+    loading,
+    onRefresh,
+}) {
+    return (
+        <div className="app-page">
+
+            <Card
+                title="Event Logs"
+                description="Administrative and system events"
+                action={
+                    <button
+                        type="button"
+                        className="app-button app-button-small"
+                        onClick={onRefresh}
+                    >
+                        Refresh
+                    </button>
+                }
+            >
+
+                {loading ? (
+
+                    <div className="app-loading">
+                        Loading events...
+                    </div>
+
+                ) : (
+
+                    <div className="app-log-list">
+
+                        {logs.length === 0 ? (
+
+                            <div className="app-loading">
+                                No events found.
+                            </div>
+
+                        ) : (
+
+                            logs.map(
+                                (
+                                    log,
+                                    index
+                                ) => (
+                                    <div
+                                        className="app-log-row"
+                                        key={
+                                            log.id ||
+                                            index
+                                        }
+                                    >
+
+                                        <span className="app-log-time">
+                                            {formatDate(
+                                                log.created_at ||
+                                                log.timestamp
+                                            )}
+                                        </span>
+
+                                        <span>
+
+                                            <span
+                                                className={
+                                                    `app-status ${
+                                                        getStatusClass(
+                                                            log.level ||
+                                                            log.status
+                                                        )
+                                                    }`
+                                                }
+                                            >
+                                                {
+                                                    log.level ||
+                                                    log.status ||
+                                                    "INFO"
+                                                }
+                                            </span>
+
+                                        </span>
+
+                                        <span className="app-log-message">
+                                            {
+                                                log.message ||
+                                                log.description ||
+                                                "—"
+                                            }
+                                        </span>
+
+                                    </div>
+                                )
+                            )
+
+                        )}
+
+                    </div>
+
+                )}
+
+            </Card>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function truncate(
+    value,
+    length = 18
+) {
+    if (!value) {
+        return "—";
+    }
+
+    const text =
+        String(value);
+
+    if (
+        text.length <= length
+    ) {
+        return text;
+    }
+
+    return `${text.slice(
+        0,
+        8
+    )}…${text.slice(-6)}`;
+}
+
+
+/* =========================================================
+   APP
+   ========================================================= */
+
+export default function App() {
+    const [
+        page,
+        setPage,
+    ] = useState(() =>
+        getInitialPage()
+    );
+
+    const [
+        sidebarOpen,
+        setSidebarOpen,
+    ] = useState(false);
+
+    const [
+        connection,
+        setConnection,
+    ] = useState(false);
+
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
+
+    const [
+        error,
+        setError,
+    ] = useState(null);
+
+    const [
+        dashboard,
+        setDashboard,
+    ] = useState(null);
+
+    const [
+        games,
+        setGames,
+    ] = useState([]);
+
+    const [
+        players,
+        setPlayers,
+    ] = useState([]);
+
+    const [
+        transactions,
+        setTransactions,
+    ] = useState([]);
+
+    const [
+        health,
+        setHealth,
+    ] = useState(null);
+
+    const [
+        logs,
+        setLogs,
+    ] = useState([]);
+
+
+    /* =====================================================
+       NAVIGATION
+       ===================================================== */
+
+    const navigate = useCallback(
+        (nextPage) => {
+            if (
+                !PAGE_META[nextPage]
+            ) {
+                nextPage =
+                    "dashboard";
+            }
+
+            setPage(nextPage);
+
+            window.history.replaceState(
+                null,
+                "",
+                `#${nextPage}`
+            );
+
+            setSidebarOpen(false);
+        },
+        []
+    );
+
+
+    /* =====================================================
+       LOAD DASHBOARD
+       ===================================================== */
+
+    const loadDashboard =
+        useCallback(
+            async (
+                signal
+            ) => {
+                try {
+                    const result =
+                        await apiRequest(
+                            "/admin/dashboard",
+                            { signal }
+                        );
+
+                    setDashboard(
+                        result?.data ||
+                        result
+                    );
+
+                    setConnection(
+                        true
+                    );
+
+                    return result;
+                } catch (requestError) {
+
+                    if (
+                        requestError.name ===
+                        "AbortError"
+                    ) {
+                        return null;
+                    }
+
+                    throw requestError;
+                }
+            },
+            []
+        );
+
+
+    /* =====================================================
+       LOAD GAMES
+       ===================================================== */
+
+    const loadGames =
+        useCallback(
+            async (
+                signal
+            ) => {
+                const result =
+                    await apiRequest(
+                        "/admin/games",
+                        { signal }
+                    );
+
+                setGames(
+                    asArray(
+                        result?.data ||
+                        result
+                    )
+                );
+
+                setConnection(
+                    true
+                );
+            },
+            []
+        );
+
+
+    /* =====================================================
+       LOAD PLAYERS
+       ===================================================== */
+
+    const loadPlayers =
+        useCallback(
+            async (
+                signal
+            ) => {
+                const result =
+                    await apiRequest(
+                        "/admin/players",
+                        { signal }
+                    );
+
+                setPlayers(
+                    asArray(
+                        result?.data ||
+                        result
+                    )
+                );
+
+                setConnection(
+                    true
+                );
+            },
+            []
+        );
+
+
+    /* =====================================================
+       LOAD TRANSACTIONS
+       ===================================================== */
+
+    const loadTransactions =
+        useCallback(
+            async (
+                signal
+            ) => {
+                const result =
+                    await apiRequest(
+                        "/admin/transactions",
+                        { signal }
+                    );
+
+                setTransactions(
+                    asArray(
+                        result?.data ||
+                        result
+                    )
+                );
+
+                setConnection(
+                    true
+                );
+            },
+            []
+        );
+
+
+    /* =====================================================
+       LOAD HEALTH
+       ===================================================== */
+
+    const loadHealth =
+        useCallback(
+            async (
+                signal
+            ) => {
+                const result =
+                    await apiRequest(
+                        "/admin/health",
+                        { signal }
+                    );
+
+                setHealth(
+                    result?.data ||
+                    result
+                );
+
+                setConnection(
+                    true
+                );
+            },
+            []
+        );
+
+
+    /* =====================================================
+       LOAD LOGS
+       ===================================================== */
+
+    const loadLogs =
+        useCallback(
+            async (
+                signal
+            ) => {
+                const result =
+                    await apiRequest(
+                        "/admin/logs",
+                        { signal }
+                    );
+
+                setLogs(
+                    asArray(
+                        result?.data ||
+                        result
+                    )
+                );
+
+                setConnection(
+                    true
+                );
+            },
+            []
+        );
+
+
+    /* =====================================================
+       REFRESH CURRENT PAGE
+       ===================================================== */
+
+    const refresh =
+        useCallback(
+            async () => {
+                const controller =
+                    new AbortController();
+
+                setLoading(true);
+                setError(null);
+
+                try {
+                    switch (page) {
+
+                        case "games":
+                            await loadGames(
+                                controller.signal
+                            );
+                            break;
+
+                        case "players":
+                            await loadPlayers(
+                                controller.signal
+                            );
+                            break;
+
+                        case "transactions":
+                            await loadTransactions(
+                                controller.signal
+                            );
+                            break;
+
+                        case "health":
+                            await loadHealth(
+                                controller.signal
+                            );
+                            break;
+
+                        case "logs":
+                            await loadLogs(
+                                controller.signal
+                            );
+                            break;
+
+                        case "dashboard":
+                        default:
+                            await loadDashboard(
+                                controller.signal
+                            );
+
+                            /*
+                             * Dashboard can also show
+                             * recent events and service
+                             * information returned by
+                             * the dashboard endpoint.
+                             */
+                            break;
+                    }
+
+                } catch (requestError) {
+
+                    if (
+                        requestError.name ===
+                        "AbortError"
+                    ) {
+                        return;
+                    }
+
+                    setConnection(
+                        false
+                    );
+
+                    setError(
+                        requestError.message ||
+                        "Unable to load admin data."
+                    );
+
+                } finally {
+                    setLoading(false);
+                }
+            },
+            [
+                page,
+                loadDashboard,
+                loadGames,
+                loadPlayers,
+                loadTransactions,
+                loadHealth,
+                loadLogs,
+            ]
+        );
+
+
+    /* =====================================================
+       INITIAL LOAD
+       ===================================================== */
+
+    useEffect(
+        () => {
+            refresh();
+
+            return undefined;
+        },
+        [refresh]
+    );
+
+
+    /* =====================================================
+       HASH NAVIGATION
+       ===================================================== */
+
+    useEffect(
+        () => {
+            const handleHashChange =
+                () => {
+                    const next =
+                        window.location.hash
+                            .replace(
+                                "#",
+                                ""
+                            );
+
+                    if (
+                        PAGE_META[next]
+                    ) {
+                        setPage(
+                            next
+                        );
+                    }
+                };
+
+            window.addEventListener(
+                "hashchange",
+                handleHashChange
+            );
+
+            return () =>
+                window.removeEventListener(
+                    "hashchange",
+                    handleHashChange
+                );
+        },
+        []
+    );
+
+
+    /* =====================================================
+       LOGOUT
+       ===================================================== */
+
+    const logout =
+        useCallback(
+            async () => {
+                try {
+                    await apiRequest(
+                        "/admin/logout",
+                        {
+                            method: "POST",
+                        }
+                    );
+                } catch {
+                    /*
+                     * Continue to login even if
+                     * the server-side session has
+                     * already expired.
+                     */
+                } finally {
+                    window.location.href =
+                        "/admin/login";
+                }
+            },
+            []
+        );
+
+
+    /* =====================================================
+       RENDER PAGE
+       ===================================================== */
+
+    const renderPage =
+        () => {
+            switch (page) {
+
+                case "games":
+                    return (
+                        <GamesPage
+                            games={games}
+                            loading={loading}
+                            onRefresh={
+                                refresh
+                            }
+                        />
+                    );
+
+                case "players":
+                    return (
+                        <PlayersPage
+                            players={players}
+                            loading={loading}
+                            onRefresh={
+                                refresh
+                            }
+                        />
+                    );
+
+                case "transactions":
+                    return (
+                        <TransactionsPage
+                            transactions={
+                                transactions
+                            }
+                            loading={loading}
+                            onRefresh={
+                                refresh
+                            }
+                        />
+                    );
+
+                case "health":
+                    return (
+                        <HealthPage
+                            health={health}
+                            loading={loading}
+                            onRefresh={
+                                refresh
+                            }
+                        />
+                    );
+
+                case "logs":
+                    return (
+                        <LogsPage
+                            logs={logs}
+                            loading={loading}
+                            onRefresh={
+                                refresh
+                            }
+                        />
+                    );
+
+                case "dashboard":
+                default:
+                    return (
+                        <Dashboard
+                            dashboard={
+                                dashboard
+                            }
+                            loading={loading}
+                            onNavigate={
+                                navigate
+                            }
+                        />
+                    );
+            }
+        };
+
+
+    return (
+        <div className="app">
+
+            <div className="app-shell">
+
+                <Sidebar
+                    page={page}
+                    onNavigate={navigate}
+                    open={sidebarOpen}
+                    onLogout={logout}
+                />
+
+
+                <div
+                    className={
+                        `app-sidebar-overlay ${
+                            sidebarOpen
+                                ? "visible"
+                                : ""
+                        }`
+                    }
+                    onClick={() =>
+                        setSidebarOpen(
+                            false
+                        )
+                    }
+                    aria-hidden="true"
+                />
+
+
+                <main className="app-main">
+
+                    <Header
+                        page={page}
+                        connection={
+                            connection
+                        }
+                        onMenu={() =>
+                            setSidebarOpen(
+                                true
+                            )
+                        }
+                        onRefresh={
+                            refresh
+                        }
+                    />
+
+
+                    <div className="app-content">
+
+                        {error && (
+                            <div
+                                className="app-alert app-alert-error"
+                                role="alert"
+                            >
+                                {error}
+                            </div>
+                        )}
+
+                        {renderPage()}
+
+                    </div>
+
+                </main>
+
+            </div>
+
+        </div>
+    );
+}
+
+
+/* =========================================================
+   INITIAL PAGE
+   ========================================================= */
+
+function getInitialPage() {
+    const hash =
+        window.location.hash
+            .replace(
+                "#",
+                ""
+            );
+
+    return PAGE_META[hash]
+        ? hash
+        : "dashboard";
+}
