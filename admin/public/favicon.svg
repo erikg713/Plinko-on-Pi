@@ -1,1 +1,89 @@
+<svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 64 64"
+    role="img"
+    aria-labelledby="title"
+>
+    <title id="title">Plinko on Pi</title>
 
+    <defs>
+        <linearGradient
+            id="bg"
+            x1="0"
+            y1="0"
+            x2="1"
+            y2="1"
+        >
+            <stop
+                offset="0%"
+                stop-color="#8b5cf6"
+            />
+            <stop
+                offset="100%"
+                stop-color="#5b21b6"
+            />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect
+        width="64"
+        height="64"
+        rx="15"
+        fill="url(#bg)"
+    />
+
+    <!-- Plinko board -->
+    <rect
+        x="11"
+        y="8"
+        width="42"
+        height="48"
+        rx="10"
+        fill="#0f172a"
+        stroke="#c4b5fd"
+        stroke-width="2"
+    />
+
+    <!-- Falling ball -->
+    <circle
+        cx="32"
+        cy="14"
+        r="3.2"
+        fill="#ffffff"
+    />
+
+    <!-- Plinko pegs -->
+    <g
+        fill="#ffffff"
+    >
+        <circle cx="22" cy="23" r="2.2"/>
+        <circle cx="32" cy="23" r="2.2"/>
+        <circle cx="42" cy="23" r="2.2"/>
+
+        <circle cx="17" cy="32" r="2.2"/>
+        <circle cx="27" cy="32" r="2.2"/>
+        <circle cx="37" cy="32" r="2.2"/>
+        <circle cx="47" cy="32" r="2.2"/>
+
+        <circle cx="22" cy="41" r="2.2"/>
+        <circle cx="32" cy="41" r="2.2"/>
+        <circle cx="42" cy="41" r="2.2"/>
+    </g>
+
+    <!-- Pi -->
+    <path
+        d="M22 48
+           H42
+           
+           M26 48
+           V54
+           
+           M38 48
+           V54"
+        fill="none"
+        stroke="#a78bfa"
+        stroke-width="3"
+        stroke-linecap="round"
+    />
+</svg>
