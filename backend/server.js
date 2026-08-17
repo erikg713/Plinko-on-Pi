@@ -1,457 +1,1099 @@
-// backend/server.js
+/**
+ * Plinko-on-Pi Backend
+ * backend/server.js
+ *
+ * Main HTTP server bootstrap.
+ *
+ * Responsibilities:
+ * - Load environment
+ * - Validate configuration
+ * - Initialize database
+ * - Configure Express
+ * - Configure security middleware
+ * - Register API routes
+ * - Expose health endpoints
+ * - Handle errors
+ * - Gracefully shut down
+ */
+
+"use strict";
+
+require("dotenv").config();
+
+const crypto = require("crypto");
+const http = require("http");
+
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
-const { verifyPayment, completePayment } = require("./payments");
-const { PORT, ADMIN_API_KEY } = require("./config");
-const Bet = require("./models/Bet"); // Bet model
+const helmet = require("helmet");
 
-const app = express();
+const config = require("./config");
+const db = require("./db");
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
+/* =========================================================
+ * Application state
+ * ========================================================= */
 
-// ✅ Health check
-app.get("/", (req, res) => {
-  res.send("✅ Plinko Backend Running");
-});
+let server = null;
+let shuttingDown = false;
 
-// ✅ Leaderboard: Returns top 10 players by total winnings
-app.get("/leaderboard", async (req, res) => {
-  try {
-    const leaders = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
+const startedAt = new Date();
 
-    const formatted = leaders.map((entry, idx) => ({
-      rank: idx + 1,
-      user: entry._id,
-      totalWinnings: +entry.totalWinnings.toFixed(4)
-    }));
+/* =========================================================
+ * Request ID
+ * ========================================================= */
 
-    res.json(formatted);
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+function requestIdMiddleware(
+    req,
+    res,
+    next
+) {
+    const supplied =
+        req.get("X-Request-ID");
 
-// ✅ Pi payment webhook handler
-// IMPORTANT: This route must be publicly accessible and registered with the Pi Core Team
-app.post("/payment-webhook", async (req, res) => {
-  try {
-    // Note: It's crucial to verify the webhook signature to ensure it's from Pi.
-    // This example assumes verification is handled in a middleware or this function.
+    const requestId =
+        supplied &&
+        /^[A-Za-z0-9._:-]{1,128}$/.test(
+            supplied
+        )
+            ? supplied
+            : crypto.randomUUID();
 
-    const { paymentId, txid, user, betAmount, multiplier } = req.body;
+    req.requestId = requestId;
 
-    if (!paymentId || !txid || !user || !betAmount || !multiplier) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    res.setHeader(
+        "X-Request-ID",
+        requestId
+    );
 
-    console.log("💰 Payment received:", paymentId);
+    next();
+}
 
-    const payment = await verifyPayment(paymentId);
-    if (!payment || payment.status !== "completed") {
-      return res.status(400).json({ error: "Invalid or incomplete payment" });
-    }
+/* =========================================================
+ * Request logging
+ * ========================================================= */
 
-    const winnings = Number((betAmount * multiplier * 0.95).toFixed(4));
-    const houseEdge = Number((betAmount - winnings).toFixed(4));
+function requestLogger(
+    req,
+    res,
+    next
+) {
+    const started =
+        process.hrtime.bigint();
 
-    console.log(`🎉 User ${user} won ${winnings} Pi!`);
-    console.log(`🏦 House kept ${houseEdge} Pi.`);
+    res.on(
+        "finish",
+        () => {
+            const duration =
+                Number(
+                    process.hrtime.bigint() -
+                        started
+                ) / 1_000_000;
 
-    await completePayment(paymentId, txid);
+            const entry = {
+                requestId:
+                    req.requestId,
 
-    await Bet.create({
-      user,
-      betAmount,
-      multiplier,
-      winnings,
-      txid,
-      paymentId,
-      createdAt: new Date()
-    });
+                method:
+                    req.method,
 
-    res.json({ success: true, winnings });
-  } catch (err) {
-    console.error("Payment webhook error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+                path:
+                    req.originalUrl,
 
-// ✅ Admin dashboard metrics (secured with API key)
-app.get("/admin/metrics", async (req, res) => {
-  try {
-    const apiKey = req.headers["x-api-key"];
-    if (apiKey !== ADMIN_API_KEY) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+                status:
+                    res.statusCode,
 
-    const totalBets = await Bet.countDocuments();
-    const totalWageredAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$betAmount" } } }]);
-    const totalPayoutsAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$winnings" } } }]);
+                durationMs:
+                    Number(
+                        duration.toFixed(
+                            2
+                        )
+                    ),
+            };
 
-    const totalWagered = totalWageredAgg[0]?.total || 0;
-    const totalPayouts = totalPayoutsAgg[0]?.total || 0;
-    const profit = totalWagered - totalPayouts;
-
-    const recentBets = await Bet.find().sort({ createdAt: -1 }).limit(10);
-
-    const leaderboard = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
-
-    res.json({
-      totalBets,
-      totalWagered,
-      totalPayouts,
-      profit,
-      recentBets,
-      leaderboard
-    });
-  } catch (err) {
-    console.error("Admin metrics error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-});
-    console.error("Leaderboard error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Pi payment webhook handler
-app.post("/payment-webhook", async (req, res) => {
-  try {
-    const { paymentId, txid, user, betAmount, multiplier } = req.body;
-
-    if (!paymentId || !txid || !user || !betAmount || !multiplier) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    console.log("💰 Payment received:", paymentId);
-
-    // Verify with Pi API
-    const payment = await verifyPayment(paymentId);
-    if (!payment || payment.status !== "completed") {
-      return res.status(400).json({ error: "Invalid or incomplete payment" });
-    }
-
-    // Calculate winnings (95% payout → 5% house edge)
-    const winnings = Number((betAmount * multiplier * 0.95).toFixed(4));
-    const houseEdge = Number((betAmount - winnings).toFixed(4));
-
-    console.log(`🎉 User ${user} won ${winnings} Pi!`);
-    console.log(`🏦 House kept ${houseEdge} Pi.`);
-
-    // Approve and finalize
-    await completePayment(paymentId, txid);
-
-    // Log bet into DB
-    await Bet.create({
-      user,
-      betAmount,
-      multiplier,
-      winnings,
-      txid,
-      paymentId,
-      createdAt: new Date()
-    });
-
-    res.json({ success: true, winnings });
-  } catch (err) {
-    console.error("Payment webhook error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Admin dashboard metrics (secured with API key)
-app.get("/admin/metrics", async (req, res) => {
-  try {
-    const apiKey = req.headers["x-api-key"];
-    if (apiKey !== ADMIN_API_KEY) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    const totalBets = await Bet.countDocuments();
-    const totalWageredAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$betAmount" } } }]);
-    const totalPayoutsAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$winnings" } } }]);
-
-    const totalWagered = totalWageredAgg[0]?.total || 0;
-    const totalPayouts = totalPayoutsAgg[0]?.total || 0;
-    const profit = totalWagered - totalPayouts;
-
-    const recentBets = await Bet.find().sort({ createdAt: -1 }).limit(10);
-
-    const leaderboard = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
-
-    res.json({
-      totalBets,
-      totalWagered,
-      totalPayouts,
-      profit,
-      recentBets,
-      leaderboard
-    });
-  } catch (err) {
-    console.error("Admin metrics error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-});    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Pi payment webhook handler
-app.post("/payment-webhook", async (req, res) => {
-  try {
-    const { paymentId, txid, user, betAmount, multiplier } = req.body;
-
-    if (!paymentId || !txid || !user || !betAmount || !multiplier) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    console.log("💰 Payment received:", paymentId);
-
-    // Verify with Pi API
-    const payment = await verifyPayment(paymentId);
-    if (!payment || payment.status !== "completed") {
-      return res.status(400).json({ error: "Invalid or incomplete payment" });
-    }
-
-    // Calculate winnings (95% payout → 5% house edge)
-    const winnings = Number((betAmount * multiplier * 0.95).toFixed(4));
-    const houseEdge = Number((betAmount - winnings).toFixed(4));
-
-    console.log(`🎉 User ${user} won ${winnings} Pi!`);
-    console.log(`🏦 House kept ${houseEdge} Pi.`);
-
-    // Approve and finalize
-    await completePayment(paymentId, txid);
-
-    // Log bet into DB
-    await Bet.create({
-      user,
-      betAmount,
-      multiplier,
-      winnings,
-      txid,
-      paymentId,
-      createdAt: new Date()
-    });
-
-    res.json({ success: true, winnings });
-  } catch (err) {
-    console.error("Payment webhook error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Admin dashboard metrics (secured with API key)
-app.get("/admin/metrics", async (req, res) => {
-  try {
-    const apiKey = req.headers["x-api-key"];
-    if (apiKey !== ADMIN_API_KEY) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    const totalBets = await Bet.countDocuments();
-    const totalWageredAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$betAmount" } } }]);
-    const totalPayoutsAgg = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$winnings" } } }]);
-
-    const totalWagered = totalWageredAgg[0]?.total || 0;
-    const totalPayouts = totalPayoutsAgg[0]?.total || 0;
-    const profit = totalWagered - totalPayouts;
-
-    const recentBets = await Bet.find().sort({ createdAt: -1 }).limit(10);
-
-    const leaderboard = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
-
-    res.json({
-      totalBets,
-      totalWagered,
-      totalPayouts,
-      profit,
-      recentBets,
-      leaderboard
-    });
-  } catch (err) {
-    console.error("Admin metrics error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-});const Bet = require("./models/Bet"); // Ensure Bet model is imported
-
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-
-// Health check route
-app.get("/", (req, res) => {
-  res.send("✅ Plinko Backend Running");
-});
-
-// Leaderboard route: Returns top 10 players by total winnings
-app.get("/leaderboard", async (req, res) => {
-  try {
-    const leaders = await Bet.aggregate([
-      {
-        $group: {
-          _id: "$user",
-          totalWinnings: { $sum: "$winnings" }
+            if (
+                res.statusCode >=
+                500
+            ) {
+                console.error(
+                    "[HTTP]",
+                    entry
+                );
+            } else if (
+                config.logging.level ===
+                    "debug" ||
+                res.statusCode >=
+                    400
+            ) {
+                console.log(
+                    "[HTTP]",
+                    entry
+                );
+            }
         }
-      },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
+    );
 
-    // Optionally, map the response for clarity
-    const formattedLeaders = leaders.map((entry, idx) => ({
-      rank: idx + 1,
-      user: entry._id,
-      totalWinnings: +entry.totalWinnings.toFixed(4)
-    }));
+    next();
+}
 
-    res.json(formattedLeaders);
-  } catch (err) {
-    console.error("Leaderboard error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+/* =========================================================
+ * CORS
+ * ========================================================= */
 
-// Pi payment webhook handler
-app.post("/payment-webhook", async (req, res) => {
-  try {
-    const { paymentId, txid, user, betAmount, multiplier } = req.body;
-    if (!paymentId || !txid || !user || !betAmount || !multiplier) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+function createCorsOptions() {
+    const origins =
+        config.cors.origins;
 
-    console.log("💰 Payment received:", paymentId);
+    return {
+        credentials:
+            config.cors.credentials,
 
-    // Verify payment status from Pi API
-    const payment = await verifyPayment(paymentId);
+        origin(origin, callback) {
+            /*
+             * Allow non-browser requests.
+             *
+             * This is useful for health checks,
+             * CLI clients, server-to-server calls,
+             * and automated tests.
+             */
+            if (!origin) {
+                return callback(
+                    null,
+                    true
+                );
+            }
 
-    if (!payment || payment.status !== "completed") {
-      return res.status(400).json({ error: "Invalid or incomplete payment" });
-    }
+            if (
+                !config.cors.enabled
+            ) {
+                return callback(
+                    null,
+                    false
+                );
+            }
 
-    // Calculate winnings (5% house edge)
-    const winnings = Number((betAmount * multiplier * 0.95).toFixed(4));
-    const houseEdge = Number((betAmount - winnings).toFixed(4));
+            if (
+                origins.includes(origin)
+            ) {
+                return callback(
+                    null,
+                    true
+                );
+            }
 
-    console.log(`🎉 User ${user} won ${winnings} Pi!`);
-    console.log(`🏦 House kept ${houseEdge} Pi.`);
+            /*
+             * Development convenience only.
+             * Production must use explicit origins.
+             */
+            if (
+                !config.env.production &&
+                origins.length === 0
+            ) {
+                return callback(
+                    null,
+                    true
+                );
+            }
 
-    // Complete the payment
-    await completePayment(paymentId, txid);
+            return callback(
+                new Error(
+                    "CORS origin not allowed."
+                )
+            );
+        },
 
-    // Log the bet in the database for leaderboard tracking
-    await Bet.create({
-      user,
-      betAmount,
-      multiplier,
-      winnings,
-      txid,
-      paymentId,
-      createdAt: new Date()
+        methods: [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS",
+        ],
+
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization",
+            "X-Request-ID",
+            "Idempotency-Key",
+        ],
+
+        exposedHeaders: [
+            "X-Request-ID",
+        ],
+    };
+}
+
+/* =========================================================
+ * Rate limiting
+ * ========================================================= */
+
+function createRateLimiter({
+    windowMs,
+    maxRequests,
+}) {
+    const clients =
+        new Map();
+
+    return function rateLimiter(
+        req,
+        res,
+        next
+    ) {
+        const now =
+            Date.now();
+
+        const key =
+            req.ip ||
+            req.socket.remoteAddress ||
+            "unknown";
+
+        let record =
+            clients.get(key);
+
+        if (
+            !record ||
+            now >=
+                record.resetAt
+        ) {
+            record = {
+                count: 0,
+                resetAt:
+                    now +
+                    windowMs,
+            };
+
+            clients.set(
+                key,
+                record
+            );
+        }
+
+        record.count += 1;
+
+        const remaining =
+            Math.max(
+                maxRequests -
+                    record.count,
+                0
+            );
+
+        res.setHeader(
+            "X-RateLimit-Limit",
+            String(maxRequests)
+        );
+
+        res.setHeader(
+            "X-RateLimit-Remaining",
+            String(remaining)
+        );
+
+        res.setHeader(
+            "X-RateLimit-Reset",
+            String(
+                Math.ceil(
+                    record.resetAt /
+                        1000
+                )
+            )
+        );
+
+        if (
+            record.count >
+            maxRequests
+        ) {
+            res.status(429);
+
+            return res.json({
+                error: {
+                    code:
+                        "RATE_LIMITED",
+
+                    message:
+                        "Too many requests.",
+
+                    requestId:
+                        req.requestId,
+                },
+            });
+        }
+
+        next();
+    };
+}
+
+/* =========================================================
+ * Health response
+ * ========================================================= */
+
+function buildHealthResponse(
+    database
+) {
+    return {
+        status: "ok",
+
+        service:
+            config.app.name,
+
+        version:
+            config.app.version,
+
+        environment:
+            config.env.name,
+
+        uptimeSeconds:
+            Math.floor(
+                process.uptime()
+            ),
+
+        startedAt:
+            startedAt.toISOString(),
+
+        timestamp:
+            new Date().toISOString(),
+
+        database,
+    };
+}
+
+/* =========================================================
+ * Health routes
+ * ========================================================= */
+
+function registerHealthRoutes(
+    app
+) {
+    app.get(
+        "/health",
+        async (req, res) => {
+            const database =
+                await db.healthCheck();
+
+            const healthy =
+                database.healthy;
+
+            res.status(
+                healthy
+                    ? 200
+                    : 503
+            ).json(
+                buildHealthResponse(
+                    database
+                )
+            );
+        }
+    );
+
+    app.get(
+        "/ready",
+        async (req, res) => {
+            const database =
+                await db.healthCheck();
+
+            if (!database.healthy) {
+                return res.status(
+                    503
+                ).json({
+                    status:
+                        "not_ready",
+
+                    requestId:
+                        req.requestId,
+                });
+            }
+
+            return res.json({
+                status:
+                    "ready",
+
+                requestId:
+                    req.requestId,
+            });
+        }
+    );
+
+    app.get(
+        "/live",
+        (req, res) => {
+            res.json({
+                status:
+                    "alive",
+
+                uptimeSeconds:
+                    Math.floor(
+                        process.uptime()
+                    ),
+
+                requestId:
+                    req.requestId,
+            });
+        }
+    );
+}
+
+/* =========================================================
+ * API root
+ * ========================================================= */
+
+function registerApiRoot(
+    app
+) {
+    app.get(
+        config.app.apiPrefix,
+        (req, res) => {
+            res.json({
+                name:
+                    config.app.name,
+
+                version:
+                    config.app.version,
+
+                api:
+                    config.app.apiPrefix,
+
+                status:
+                    "online",
+
+                timestamp:
+                    new Date().toISOString(),
+
+                requestId:
+                    req.requestId,
+            });
+        }
+    );
+}
+
+/* =========================================================
+ * Route registration
+ * ========================================================= */
+
+function registerApiRoutes(
+    app
+) {
+    /*
+     * The individual route modules can be added here
+     * as the backend grows.
+     *
+     * Example:
+     *
+     * const playerRoutes =
+     *     require("./src/api/routes/player");
+     *
+     * app.use(
+     *     `${config.app.apiPrefix}/player`,
+     *     playerRoutes
+     * );
+     */
+
+    registerPlaceholderRoutes(
+        app
+    );
+}
+
+/* =========================================================
+ * Temporary route layer
+ *
+ * This keeps the server bootable while the real route
+ * modules are being built.
+ * ========================================================= */
+
+function registerPlaceholderRoutes(
+    app
+) {
+    const prefix =
+        config.app.apiPrefix;
+
+    app.get(
+        `${prefix}/status`,
+        (req, res) => {
+            res.json({
+                status:
+                    "online",
+
+                service:
+                    config.app.name,
+
+                version:
+                    config.app.version,
+
+                requestId:
+                    req.requestId,
+            });
+        }
+    );
+}
+
+/* =========================================================
+ * 404 handler
+ * ========================================================= */
+
+function notFoundHandler(
+    req,
+    res
+) {
+    res.status(404).json({
+        error: {
+            code:
+                "NOT_FOUND",
+
+            message:
+                "The requested resource was not found.",
+
+            path:
+                req.originalUrl,
+
+            requestId:
+                req.requestId,
+        },
     });
+}
 
-    res.json({ success: true, winnings });
-  } catch (err) {
-    console.error("Payment webhook error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+/* =========================================================
+ * Error handler
+ * ========================================================= */
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-});
-    console.log("💰 Payment received:", paymentId);
-
-    // Verify with Pi API
-    const payment = await verifyPayment(paymentId);
-
-    if (payment && payment.status === "completed") {
-      // Calculate winnings (95% payout → 5% house edge)
-      const winnings = betAmount * multiplier * 0.95;
-
-      console.log(`🎉 User ${user} won ${winnings} Pi!`);
-      console.log(`🏦 House kept ${betAmount - winnings} Pi.`);
-
-      // Approve and finalize
-      await completePayment(paymentId, txid);
-
-      return res.json({ success: true, winnings });
+function errorHandler(
+    error,
+    req,
+    res,
+    next
+) {
+    if (res.headersSent) {
+        return next(error);
     }
 
-    return res.status(400).json({ error: "Invalid or incomplete payment" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    console.error(
+        "[SERVER ERROR]",
+        {
+            requestId:
+                req.requestId,
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
-});
-// Admin dashboard metrics (secure this with API key or JWT)
-app.get("/admin/metrics", async (req, res) => {
-  try {
-    const totalBets = await Bet.countDocuments();
-    const totalWagered = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$betAmount" } } }]);
-    const totalPayouts = await Bet.aggregate([{ $group: { _id: null, total: { $sum: "$winnings" } } }]);
+            name:
+                error?.name,
 
-    const recentBets = await Bet.find().sort({ timestamp: -1 }).limit(10);
+            code:
+                error?.code,
 
-    const leaderboard = await Bet.aggregate([
-      { $group: { _id: "$user", totalWinnings: { $sum: "$winnings" } } },
-      { $sort: { totalWinnings: -1 } },
-      { $limit: 10 }
-    ]);
+            message:
+                config.env.production
+                    ? "Internal server error."
+                    : error?.message,
 
-    const profit = (totalWagered[0]?.total || 0) - (totalPayouts[0]?.total || 0);
+            stack:
+                config.env.production
+                    ? undefined
+                    : error?.stack,
+        }
+    );
 
-    res.json({
-      totalBets,
-      totalWagered: totalWagered[0]?.total || 0,
-      totalPayouts: totalPayouts[0]?.total || 0,
-      profit,
-      recentBets,
-      leaderboard
+    /*
+     * CORS errors.
+     */
+    if (
+        error?.message ===
+        "CORS origin not allowed."
+    ) {
+        return res.status(403).json({
+            error: {
+                code:
+                    "CORS_FORBIDDEN",
+
+                message:
+                    "Origin is not allowed.",
+
+                requestId:
+                    req.requestId,
+            },
+        });
+    }
+
+    /*
+     * Express/body-parser payload errors.
+     */
+    if (
+        error?.type ===
+        "entity.too.large"
+    ) {
+        return res.status(413).json({
+            error: {
+                code:
+                    "PAYLOAD_TOO_LARGE",
+
+                message:
+                    "Request payload is too large.",
+
+                requestId:
+                    req.requestId,
+            },
+        });
+    }
+
+    const status =
+        Number.isInteger(
+            error?.statusCode
+        )
+            ? error.statusCode
+            : Number.isInteger(
+                  error?.status
+              )
+            ? error.status
+            : 500;
+
+    return res.status(
+        status >= 400 &&
+            status < 600
+            ? status
+            : 500
+    ).json({
+        error: {
+            code:
+                error?.code ||
+                "INTERNAL_ERROR",
+
+            message:
+                config.env.production
+                    ? "Internal server error."
+                    : error?.message ||
+                      "Internal server error.",
+
+            requestId:
+                req.requestId,
+        },
     });
-  } catch (err) {
-    console.error("Admin metrics error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+}
+
+/* =========================================================
+ * Express application
+ * ========================================================= */
+
+function createApp() {
+    const app =
+        express();
+
+    /*
+     * Reverse proxy support.
+     */
+    if (
+        config.app.trustProxy
+    ) {
+        app.set(
+            "trust proxy",
+            true
+        );
+    }
+
+    /*
+     * Hide Express signature.
+     */
+    app.disable(
+        "x-powered-by"
+    );
+
+    /*
+     * Security headers.
+     */
+    if (
+        config.security.helmet
+    ) {
+        app.use(
+            helmet()
+        );
+    }
+
+    /*
+     * Request IDs.
+     */
+    if (
+        config.security.requestId
+    ) {
+        app.use(
+            requestIdMiddleware
+        );
+    } else {
+        app.use(
+            (req, res, next) => {
+                req.requestId =
+                    crypto.randomUUID();
+
+                res.setHeader(
+                    "X-Request-ID",
+                    req.requestId
+                );
+
+                next();
+            }
+        );
+    }
+
+    /*
+     * CORS.
+     */
+    if (
+        config.cors.enabled
+    ) {
+        app.use(
+            cors(
+                createCorsOptions()
+            )
+        );
+    }
+
+    /*
+     * Request body parsing.
+     */
+    app.use(
+        express.json({
+            limit:
+                config.security
+                    .maxBodySize,
+        })
+    );
+
+    app.use(
+        express.urlencoded({
+            extended: true,
+
+            limit:
+                config.security
+                    .maxBodySize,
+        })
+    );
+
+    /*
+     * Request logging.
+     */
+    app.use(
+        requestLogger
+    );
+
+    /*
+     * Global rate limiting.
+     */
+    if (
+        config.rateLimit.enabled
+    ) {
+        app.use(
+            createRateLimiter({
+                windowMs:
+                    config.rateLimit
+                        .windowMs,
+
+                maxRequests:
+                    config.rateLimit
+                        .maxRequests,
+            })
+        );
+    }
+
+    /*
+     * Health endpoints.
+     *
+     * Register before authenticated API
+     * middleware so monitoring systems can
+     * reach them.
+     */
+    registerHealthRoutes(
+        app
+    );
+
+    registerApiRoot(
+        app
+    );
+
+    /*
+     * API routes.
+     */
+    registerApiRoutes(
+        app
+    );
+
+    /*
+     * 404.
+     */
+    app.use(
+        notFoundHandler
+    );
+
+    /*
+     * Global error handler.
+     */
+    app.use(
+        errorHandler
+    );
+
+    return app;
+}
+
+/* =========================================================
+ * Startup
+ * ========================================================= */
+
+async function start() {
+    if (server) {
+        return server;
+    }
+
+    console.log(
+        `[Server] Starting ${config.app.name}...`
+    );
+
+    console.log(
+        `[Server] Environment: ${config.env.name}`
+    );
+
+    /*
+     * Initialize database.
+     */
+    await db.init();
+
+    /*
+     * Register database shutdown handlers.
+     */
+    db.registerShutdownHandlers();
+
+    /*
+     * Create Express app.
+     */
+    const app =
+        createApp();
+
+    /*
+     * Create HTTP server.
+     */
+    server = http.createServer(
+        app
+    );
+
+    await new Promise(
+        (resolve, reject) => {
+            const onError =
+                (error) => {
+                    server.removeListener(
+                        "listening",
+                        onListening
+                    );
+
+                    reject(error);
+                };
+
+            const onListening =
+                () => {
+                    server.removeListener(
+                        "error",
+                        onError
+                    );
+
+                    resolve();
+                };
+
+            server.once(
+                "error",
+                onError
+            );
+
+            server.once(
+                "listening",
+                onListening
+            );
+
+            server.listen(
+                config.app.port,
+                config.app.host
+            );
+        }
+    );
+
+    const address =
+        server.address();
+
+    const host =
+        typeof address ===
+        "object"
+            ? address.address
+            : config.app.host;
+
+    const port =
+        typeof address ===
+        "object"
+            ? address.port
+            : config.app.port;
+
+    console.log(
+        `[Server] Listening on ${host}:${port}`
+    );
+
+    console.log(
+        `[Server] API: ${config.app.apiPrefix}`
+    );
+
+    return server;
+}
+
+/* =========================================================
+ * Graceful shutdown
+ * ========================================================= */
+
+async function shutdown(
+    signal
+) {
+    if (shuttingDown) {
+        return;
+    }
+
+    shuttingDown = true;
+
+    console.log(
+        `[Server] Received ${signal}. Shutting down...`
+    );
+
+    /*
+     * Stop accepting new HTTP connections.
+     */
+    if (server) {
+        await new Promise(
+            (resolve) => {
+                server.close(
+                    () => {
+                        resolve();
+                    }
+                );
+            }
+        );
+
+        server = null;
+    }
+
+    /*
+     * Close PostgreSQL pool.
+     */
+    try {
+        await db.close();
+    } catch (error) {
+        console.error(
+            "[Server] Database shutdown error:",
+            error
+        );
+
+        process.exitCode = 1;
+    }
+
+    console.log(
+        "[Server] Shutdown complete."
+    );
+}
+
+/* =========================================================
+ * Process signals
+ * ========================================================= */
+
+process.once(
+    "SIGINT",
+    () =>
+        shutdown("SIGINT")
+            .then(() => {
+                process.exit(
+                    process.exitCode ||
+                        0
+                );
+            })
+            .catch(() => {
+                process.exit(1);
+            })
+);
+
+process.once(
+    "SIGTERM",
+    () =>
+        shutdown("SIGTERM")
+            .then(() => {
+                process.exit(
+                    process.exitCode ||
+                        0
+                );
+            })
+            .catch(() => {
+                process.exit(1);
+            })
+);
+
+/* =========================================================
+ * Unhandled errors
+ * ========================================================= */
+
+process.on(
+    "unhandledRejection",
+    (reason) => {
+        console.error(
+            "[Process] Unhandled promise rejection:",
+            reason
+        );
+
+        /*
+         * Do not silently continue in production.
+         * The process manager should restart the service.
+         */
+        if (
+            config.env.production
+        ) {
+            shutdown(
+                "UNHANDLED_REJECTION"
+            )
+                .then(() =>
+                    process.exit(1)
+                )
+                .catch(() =>
+                    process.exit(1)
+                );
+        }
+    }
+);
+
+process.on(
+    "uncaughtException",
+    (error) => {
+        console.error(
+            "[Process] Uncaught exception:",
+            error
+        );
+
+        shutdown(
+            "UNCAUGHT_EXCEPTION"
+        )
+            .then(() =>
+                process.exit(1)
+            )
+            .catch(() =>
+                process.exit(1)
+            );
+    }
+);
+
+/* =========================================================
+ * Start when executed directly
+ * ========================================================= */
+
+if (
+    require.main === module
+) {
+    start().catch(
+        (error) => {
+            console.error(
+                "[Server] Startup failed:",
+                error
+            );
+
+            process.exit(1);
+        }
+    );
+}
+
+/* =========================================================
+ * Exports
+ * ========================================================= */
+
+module.exports = {
+    createApp,
+    start,
+    shutdown,
+};
