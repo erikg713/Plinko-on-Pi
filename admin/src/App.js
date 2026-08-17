@@ -19,8 +19,15 @@ import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Toast from "./components/Toast";
 
+// ============================================================================
+// CONSTANTS & CONFIGURATION
+// ============================================================================
+
 const STORAGE_KEY =
     "plinko-admin-active-page";
+
+const USER_STORAGE_KEY =
+    "plinko-admin-user";
 
 const PAGE_TITLES = {
     dashboard: {
@@ -72,7 +79,25 @@ const PAGE_TITLES = {
     },
 };
 
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
+/**
+ * Get the API base URL from environment or default to /api
+ */
+function getApiBaseUrl() {
+    const url = (
+        process.env.REACT_APP_API_URL || "/api"
+    ).replace(/\/+$/, "");
+
+    return url;
+}
+
+/**
+ * Safely retrieve the initially saved page from localStorage
+ * Validates the page exists in PAGE_TITLES before returning
+ */
 function getInitialPage() {
     try {
         const saved =
@@ -86,19 +111,25 @@ function getInitialPage() {
         ) {
             return saved;
         }
-    } catch {
-        // Ignore localStorage failures.
+    } catch (error) {
+        console.warn(
+            "Failed to read localStorage for initial page:",
+            error
+        );
     }
 
     return "dashboard";
 }
 
-
+/**
+ * Safely retrieve the stored admin user from localStorage
+ * Returns null if not found or if parsing fails
+ */
 function getAdminUser() {
     try {
         const raw =
             window.localStorage.getItem(
-                "plinko-admin-user"
+                USER_STORAGE_KEY
             );
 
         if (!raw) {
@@ -106,149 +137,40 @@ function getAdminUser() {
         }
 
         return JSON.parse(raw);
-    } catch {
+    } catch (error) {
+        console.warn(
+            "Failed to parse admin user from localStorage:",
+            error
+        );
+
         return null;
     }
 }
 
+// ============================================================================
+// CUSTOM HOOKS
+// ============================================================================
 
-export default function App() {
-    const [activePage, setActivePage] =
-        useState(getInitialPage);
-
-    const [user, setUser] =
-        useState(getAdminUser);
-
-    const [toast, setToast] =
-        useState(null);
-
-    const [sidebarOpen, setSidebarOpen] =
-        useState(false);
-
-    const navigate = useCallback(
-        (page) => {
-            if (!PAGE_TITLES[page]) {
-                return;
-            }
-
-            setActivePage(page);
-            setSidebarOpen(false);
-
-            try {
-                window.localStorage.setItem(
-                    STORAGE_KEY,
-                    page
-                );
-            } catch {
-                // Ignore storage failures.
-            }
-
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-            });
-        },
-        []
-    );
-
-
-    const notify = useCallback(
-        (
-            message,
-            type = "info"
-        ) => {
-            setToast({
-                message,
-                type,
-                id: Date.now(),
-            });
-        },
-        []
-    );
-
-
-    const logout = useCallback(
-        async () => {
-            try {
-                const base = (
-                    process.env
-                        .REACT_APP_API_URL ||
-                    "/api"
-                ).replace(
-                    /\/+$/,
-                    ""
-                );
-
-                await fetch(
-                    `${base}/admin/logout`,
-                    {
-                        method: "POST",
-                        credentials:
-                            "include",
-                        headers: {
-                            Accept:
-                                "application/json",
-                        },
-                    }
-                );
-            } catch {
-                // Clear local state even if
-                // the server request fails.
-            }
-
-            try {
-                window.localStorage.removeItem(
-                    "plinko-admin-user"
-                );
-
-                window.localStorage.removeItem(
-                    STORAGE_KEY
-                );
-            } catch {
-                // Ignore storage failures.
-            }
-
-            setUser(null);
-
-            notify(
-                "You have been signed out.",
-                "success"
-            );
-
-            /*
-             * If the project has a dedicated
-             * authentication route, change this
-             * to window.location.assign("/login").
-             */
-            window.location.reload();
-        },
-        [notify]
-    );
-
-
+/**
+ * Custom hook for managing keyboard shortcuts
+ * Handles:
+ * - Ctrl/Cmd + K: Navigate to dashboard
+ * - Escape: Close mobile sidebar
+ */
+function useKeyboardShortcuts(navigate, setSidebarOpen) {
     useEffect(() => {
-        const handleKeyDown = (
-            event
-        ) => {
-            /*
-             * Ctrl/Cmd + K opens the dashboard.
-             */
+        const handleKeyDown = (event) => {
+            // Ctrl/Cmd + K opens the dashboard
             if (
-                (event.ctrlKey ||
-                    event.metaKey) &&
-                event.key.toLowerCase() ===
-                    "k"
+                (event.ctrlKey || event.metaKey) &&
+                event.key.toLowerCase() === "k"
             ) {
                 event.preventDefault();
                 navigate("dashboard");
             }
 
-            /*
-             * Escape closes mobile sidebar.
-             */
-            if (
-                event.key === "Escape"
-            ) {
+            // Escape closes mobile sidebar
+            if (event.key === "Escape") {
                 setSidebarOpen(false);
             }
         };
@@ -263,13 +185,191 @@ export default function App() {
                 "keydown",
                 handleKeyDown
             );
-    }, [navigate]);
+    }, [navigate, setSidebarOpen]);
+}
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function App() {
+    // ========================================================================
+    // STATE
+    // ========================================================================
+
+    const [activePage, setActivePage] =
+        useState(getInitialPage);
+
+    const [user, setUser] =
+        useState(getAdminUser);
+
+    const [toast, setToast] =
+        useState(null);
+
+    const [sidebarOpen, setSidebarOpen] =
+        useState(false);
+
+    // ========================================================================
+    // CALLBACKS
+    // ========================================================================
+
+    /**
+     * Navigate to a page, validate it exists, and persist the choice
+     */
+    const navigate = useCallback(
+        (page) => {
+            if (!PAGE_TITLES[page]) {
+                console.warn(
+                    `Invalid page: ${page}`
+                );
+
+                return;
+            }
+
+            setActivePage(page);
+            setSidebarOpen(false);
+
+            try {
+                window.localStorage.setItem(
+                    STORAGE_KEY,
+                    page
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to save page to localStorage:",
+                    error
+                );
+            }
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+            });
+        },
+        []
+    );
+
+    /**
+     * Display a toast notification with optional type
+     * Types: 'info', 'success', 'error', 'warning'
+     */
+    const notify = useCallback(
+        (message, type = "info") => {
+            setToast({
+                message,
+                type,
+                id: Date.now(),
+            });
+        },
+        []
+    );
+
+    /**
+     * Logout the admin user:
+     * 1. Attempt to call the backend logout endpoint
+     * 2. Clear localStorage (even if backend call fails)
+     * 3. Clear app state
+     * 4. Notify user
+     * 5. Reload page to reset app
+     */
+    const logout = useCallback(
+        async () => {
+            try {
+                const base = getApiBaseUrl();
+
+                const response = await fetch(
+                    `${base}/admin/logout`,
+                    {
+                        method: "POST",
+                        credentials: "include",
+                        headers: {
+                            Accept:
+                                "application/json",
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    console.error(
+                        `Logout request failed with status ${response.status}`
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "Failed to call logout endpoint:",
+                    error
+                );
+            }
+
+            // Clear local storage regardless of server response
+            try {
+                window.localStorage.removeItem(
+                    USER_STORAGE_KEY
+                );
+
+                window.localStorage.removeItem(
+                    STORAGE_KEY
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to clear localStorage on logout:",
+                    error
+                );
+            }
+
+            // Clear app state
+            setUser(null);
+
+            // Notify user
+            notify(
+                "You have been signed out.",
+                "success"
+            );
+
+            // Reload page to reset app state
+            // TODO: Consider routing to /login instead of full reload
+            // if the project has a dedicated authentication route
+            window.location.reload();
+        },
+        [notify]
+    );
+
+    // ========================================================================
+    // EFFECTS
+    // ========================================================================
+
+    /**
+     * Set up keyboard shortcut listeners
+     */
+    useKeyboardShortcuts(navigate, setSidebarOpen);
+
+    /**
+     * Guard against unauthenticated access
+     * If user is not present after initial load, redirect to login
+     */
+    useEffect(() => {
+        // Only check after initial render
+        // This gives time for getAdminUser to run
+        if (user === null) {
+            // TODO: Implement proper authentication flow
+            // Options:
+            // 1. window.location.assign('/login') - redirect to login page
+            // 2. Show auth modal within the app
+            // 3. Check backend session and fetch user data
+
+            console.warn(
+                "No authenticated user found. Consider implementing auth guard."
+            );
+        }
+    }, []);
+
+    // ========================================================================
+    // RENDER HELPERS
+    // ========================================================================
 
     const page =
         PAGE_TITLES[activePage] ||
         PAGE_TITLES.dashboard;
-
 
     const renderPage = () => {
         switch (activePage) {
@@ -316,6 +416,9 @@ export default function App() {
         }
     };
 
+    // ========================================================================
+    // MAIN RENDER
+    // ========================================================================
 
     return (
         <div className="app-shell">
@@ -329,7 +432,6 @@ export default function App() {
                     aria-hidden="true"
                 />
             )}
-
 
             <div
                 className={
@@ -348,7 +450,6 @@ export default function App() {
                 />
             </div>
 
-
             <main className="app-main">
 
                 <div className="app-mobile-header">
@@ -360,7 +461,7 @@ export default function App() {
                                 true
                             )
                         }
-                        aria-label="Open navigation"
+                        aria-label="Open navigation menu"
                     >
                         ☰
                     </button>
@@ -371,7 +472,6 @@ export default function App() {
                         </strong>
                     </div>
                 </div>
-
 
                 <Header
                     title={page.title}
@@ -386,13 +486,11 @@ export default function App() {
                     }
                 />
 
-
                 <div className="app-content">
                     {renderPage()}
                 </div>
 
             </main>
-
 
             <div className="app-toast-container">
                 <Toast
@@ -409,4 +507,4 @@ export default function App() {
 
         </div>
     );
-    }
+}
