@@ -1,41 +1,37 @@
 {
-  "name": "edgerush-backend",
+  "name": "plinko-on-pi-backend",
   "version": "1.0.0",
-  "description": "Provably fair Plinko backend for EdgeRush dApp on Pi Network – Rollbit-grade fairness, real Pi bets, house edge printing",
-  "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "seed": "node utils/generateSeed.js",
-    "test": "echo \"No tests yet, degen – add Jest later\" && exit 0"
-  },
-  "keywords": [
-    "plinko",
-    "pi-network",
-    "web3",
-    "gambling",
-    "provably-fair",
-    "crypto",
-    "nodejs",
-    "express",
-    "mongodb"
-  ],
-  "author": "Dev713 <you@edgerush.com>",
-  "license": "MIT",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "crypto-js": "^4.2.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.4.0",
-    "helmet": "^7.1.0",
-    "mongoose": "^8.6.1",
-    "morgan": "^1.10.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
-  },
+  "private": true,
+  "description": "Backend API and game services for Plinko-on-Pi",
+  "license": "UNLICENSED",
+  "main": "server.js",
+  "type": "commonjs",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:health": "node scripts/db-health.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:rollback": "node scripts/rollback.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.35.0",
+    "prettier": "^3.6.2"
   }
 }
