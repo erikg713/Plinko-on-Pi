@@ -9,6 +9,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "{
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
@@ -19,8 +20,10 @@
     "format:check": "prettier --check .",
     "db:health": "node scripts/db-health.js",
     "db:migrate": "node scripts/migrate.js",
-    "db:rollback": "node scripts/rollback.js"
-  },
+    "db:rollback": "node scripts/rollback.js",
+    "db:seed": "node scripts/seed.js"
+  }
+}
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
