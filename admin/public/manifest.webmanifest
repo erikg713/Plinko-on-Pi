@@ -1,1 +1,21 @@
-
+{
+  "name": "Plinko-on-Pi Admin",
+  "short_name": "Plinko Admin",
+  "description": "Administration dashboard for Plinko-on-Pi.",
+  "lang": "en-US",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0b1020",
+  "background_color": "#0b1020",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
