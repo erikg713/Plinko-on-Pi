@@ -760,25 +760,27 @@ Install dependencies:
 npm install
 
 Start development mode:
-
+```
+cd backend
+npm run db:migrate
 npm run dev
-
+```
 Run production:
-
+```
 npm start
-
+```
 Run tests:
-
+```
 npm test
-
+```
 Run linting:
-
+```
 npm run lint
-
+```
 Run formatting:
-
+```
 npm run format
-
+```
 
 ---
 
@@ -787,13 +789,13 @@ Database
 Database migrations should be version controlled.
 
 Typical migration workflow:
-
+```
 npm run migrate
-
+```
 Rollback:
-
+```
 npm run migrate:rollback
-
+```
 Never modify production schemas manually without a migration.
 
 
