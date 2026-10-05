@@ -117,11 +117,9 @@ function getBearerToken(req) {
  * Pi authentication validation
  * =========================================================
  *
- * Replace this with the real Pi Platform API verification
- * service when connecting the Pi SDK.
- *
- * The browser must provide a Pi access token, not merely a
- * player ID.
+ * Verifies the Pi access token server-side against the Pi
+ * Platform API (GET /v2/me). Never decode an unverified
+ * token and treat its contents as trusted.
  * ========================================================= */
 
 async function verifyPiToken(
@@ -143,32 +141,91 @@ async function verifyPiToken(
         throw error;
     }
 
-    /*
-     * TODO:
-     *
-     * Call your server-side Pi authentication service here.
-     *
-     * Example return shape:
-     *
-     * {
-     *     uid: "...",
-     *     username: "...",
-     *     displayName: "..."
-     * }
-     *
-     * Never decode an unverified token and treat its contents
-     * as trusted.
-     */
+    const apiUrl =
+        (config.pi.apiUrl || "").replace(
+            /\/+$/,
+            ""
+        ) || "https://api.minepi.com";
 
-    throw Object.assign(
-        new Error(
-            "Pi authentication provider is not configured."
-        ),
-        {
-            code:
-                "PI_AUTH_NOT_CONFIGURED",
-        }
-    );
+    const controller =
+        new AbortController();
+
+    const timeout =
+        setTimeout(
+            () => controller.abort(),
+            config.pi.timeoutMs || 10000
+        );
+
+    let response;
+
+    try {
+        response =
+            await fetch(
+                `${apiUrl}/v2/me`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization:
+                            `Bearer ${accessToken}`,
+                    },
+                    signal:
+                        controller.signal,
+                }
+            );
+    } catch (err) {
+        const error =
+            new Error(
+                "Could not reach the Pi Platform API."
+            );
+
+        error.code =
+            "PI_API_UNREACHABLE";
+        error.cause = err;
+
+        throw error;
+    } finally {
+        clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+        const error =
+            new Error(
+                "Pi access token is invalid or expired."
+            );
+
+        error.code =
+            "PI_TOKEN_INVALID";
+        error.status = 401;
+
+        throw error;
+    }
+
+    const profile =
+        await response.json();
+
+    if (
+        !profile ||
+        !profile.uid ||
+        !profile.username
+    ) {
+        const error =
+            new Error(
+                "Pi Platform API returned an unusable profile."
+            );
+
+        error.code =
+            "PI_PROFILE_INVALID";
+
+        throw error;
+    }
+
+    return {
+        uid: profile.uid,
+        username: profile.username,
+        displayName:
+            profile.displayName ||
+            profile.username,
+    };
 }
 
 /* =========================================================

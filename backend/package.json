@@ -22,8 +22,7 @@
     "db:migrate": "node scripts/migrate.js",
     "db:rollback": "node scripts/rollback.js",
     "db:seed": "node scripts/seed.js"
-  }
-}
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",

@@ -92,6 +92,15 @@ function request(
                         }
                     );
 
+                    if (
+                        options.body !==
+                        undefined
+                    ) {
+                        req.write(
+                            options.body
+                        );
+                    }
+
                     req.end();
                 }
             );
@@ -177,7 +186,33 @@ test("API root returns service information", async () => {
     );
 });
 
-test("status endpoint returns online", async () => {
+test("game API routes are mounted behind auth", async () => {
+    const app =
+        createApp();
+
+    for (
+        const path of
+        [
+            "/api/v1/bets",
+            "/api/v1/payments",
+            "/api/v1/wallet",
+        ]
+    ) {
+        const response =
+            await request(
+                app,
+                { path }
+            );
+
+        assert.equal(
+            response.status,
+            401,
+            `expected 401 for ${path}`
+        );
+    }
+});
+
+test("provably-fair verify endpoint is public", async () => {
     const app =
         createApp();
 
@@ -185,7 +220,22 @@ test("status endpoint returns online", async () => {
         await request(
             app,
             {
-                path: "/api/v1/status",
+                path: "/api/v1/provably-fair/verify",
+                method: "POST",
+                body: JSON.stringify(
+                    {
+                        serverSeed: "a".repeat(64),
+                        serverSeedHash: "b".repeat(64),
+                        clientSeed: "c".repeat(16),
+                        nonce: 1,
+                        rows: 8,
+                        path: "LRLRLRLR",
+                    }
+                ),
+                headers: {
+                    "content-type":
+                        "application/json",
+                },
             }
         );
 
@@ -200,8 +250,8 @@ test("status endpoint returns online", async () => {
         );
 
     assert.equal(
-        body.status,
-        "online"
+        typeof body.data.valid,
+        "boolean"
     );
 });
 

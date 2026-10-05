@@ -18,7 +18,16 @@ const crypto = require("crypto");
 const config = require("../config");
 const db = require("../db");
 
+const {
+    derivePath,
+    multiplierFor,
+} = require("../lib/provablyFair");
+
 const router = express.Router();
+
+const {
+    authenticate: requirePlayer,
+} = require("../middleware/auth");
 
 /* =========================================================
  * Constants
@@ -56,6 +65,15 @@ function errorResponse(
                 requestId(req),
         },
     });
+}
+
+function codedError(code, message, status) {
+    const error = new Error(message);
+
+    error.code = code;
+    error.statusCode = status || 400;
+
+    return error;
 }
 
 function asyncRoute(handler) {
@@ -120,134 +138,56 @@ function randomInt(max) {
  * The real authentication middleware should populate this.
  */
 
-function requirePlayer(
-    req,
-    res,
-    next
-) {
-    if (!req.player?.id) {
-        return errorResponse(
-            res,
-            401,
-            "AUTH_REQUIRED",
-            "Player authentication is required.",
-            req
-        );
-    }
-
-    next();
-}
-
 /* =========================================================
  * Bet validation
  * ========================================================= */
 
 function validateBet(body) {
-    const amount =
-        normalizeAmount(
-            body.amount
-        );
+    const amount = normalizeAmount(body.amount);
+    const rows = Number(body.rows);
+    const risk = String(body.risk || config.game.defaultRisk).toLowerCase();
 
-    const rows =
-        Number(body.rows);
-
-    const risk =
-        String(
-            body.risk ||
-                config.game.defaultRisk
-        ).toLowerCase();
-
-    if (
-        amount === null ||
-        !isPositiveNumber(
-            amount
-        )
-    ) {
-        return {
-            valid: false,
-            code: "INVALID_AMOUNT",
-            message:
-                "Bet amount must be a positive number.",
-        };
+    if (amount === null || !isPositiveNumber(amount)) {
+        return { valid: false, code: "INVALID_AMOUNT",
+            message: "Bet amount must be a positive number." };
+    }
+    if (amount < config.game.minWager || amount > config.game.maxWager) {
+        return { valid: false, code: "INVALID_AMOUNT",
+            message: `Bet amount must be between ${config.game.minWager} and ${config.game.maxWager}.` };
+    }
+    if (!Number.isInteger(rows)) {
+        return { valid: false, code: "INVALID_ROWS",
+            message: "Rows must be an integer." };
+    }
+    if (rows < config.game.minRows || rows > config.game.maxRows) {
+        return { valid: false, code: "INVALID_ROWS",
+            message: `Rows must be between ${config.game.minRows} and ${config.game.maxRows}.` };
+    }
+    if (!ALLOWED_RISKS.has(risk)) {
+        return { valid: false, code: "INVALID_RISK",
+            message: "Risk must be low, medium, or high." };
     }
 
-    if (
-        amount <
-        Number(
-            config.game.minWager
-        )
-    ) {
-        return {
-            valid: false,
-            code: "BET_TOO_SMALL",
-            message:
-                `Minimum wager is ${config.game.minWager}.`,
-        };
+    const roundId = String(body.roundId || "").trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roundId)) {
+        return { valid: false, code: "INVALID_ROUND",
+            message: "A valid provably-fair roundId (from /provably-fair/commit) is required." };
     }
 
-    if (
-        amount >
-        Number(
-            config.game.maxWager
-        )
-    ) {
-        return {
-            valid: false,
-            code: "BET_TOO_LARGE",
-            message:
-                `Maximum wager is ${config.game.maxWager}.`,
-        };
+    const clientSeed = String(body.clientSeed || "").trim();
+    if (!/^[a-f0-9]{8,128}$/i.test(clientSeed)) {
+        return { valid: false, code: "INVALID_CLIENT_SEED",
+            message: "clientSeed must be 8-128 hex characters." };
     }
 
-    if (
-        !Number.isInteger(
-            rows
-        )
-    ) {
-        return {
-            valid: false,
-            code: "INVALID_ROWS",
-            message:
-                "Rows must be an integer.",
-        };
+    const paymentId = String(body.paymentId || "").trim();
+    if (!paymentId || paymentId.length > 128) {
+        return { valid: false, code: "INVALID_PAYMENT",
+            message: "A completed Pi paymentId is required to fund the bet." };
     }
 
-    if (
-        rows <
-        config.game.minRows ||
-        rows >
-        config.game.maxRows
-    ) {
-        return {
-            valid: false,
-            code: "INVALID_ROWS",
-            message:
-                `Rows must be between ${config.game.minRows} and ${config.game.maxRows}.`,
-        };
-    }
-
-    if (
-        !ALLOWED_RISKS.has(
-            risk
-        )
-    ) {
-        return {
-            valid: false,
-            code: "INVALID_RISK",
-            message:
-                "Risk must be low, medium, or high.",
-        };
-    }
-
-    return {
-        valid: true,
-
-        value: {
-            amount,
-            rows,
-            risk,
-        },
-    };
+    return { valid: true,
+        value: { amount, rows, risk, roundId, clientSeed, paymentId } };
 }
 
 /* =========================================================
@@ -261,114 +201,6 @@ function validateBet(body) {
  * a dedicated service and use the committed server seed +
  * client seed + nonce.
  */
-
-function generateResult(
-    rows,
-    risk
-) {
-    const slots =
-        rows + 1;
-
-    let position = 0;
-
-    const path = [];
-
-    for (
-        let i = 0;
-        i < rows;
-        i += 1
-    ) {
-        const direction =
-            randomInt(2) === 0
-                ? "L"
-                : "R";
-
-        path.push(
-            direction
-        );
-
-        if (
-            direction === "R"
-        ) {
-            position += 1;
-        }
-    }
-
-    /*
-     * Basic multiplier curves.
-     *
-     * These should eventually come from a database/config
-     * controlled payout table rather than being embedded here.
-     */
-
-    const curves = {
-        low: [
-            1.5,
-            1.25,
-            1.1,
-            1.0,
-            0.8,
-            1.0,
-            1.1,
-            1.25,
-            1.5,
-        ],
-
-        medium: [
-            3.0,
-            1.8,
-            1.3,
-            0.9,
-            0.5,
-            0.9,
-            1.3,
-            1.8,
-            3.0,
-        ],
-
-        high: [
-            10.0,
-            3.0,
-            1.5,
-            0.5,
-            0.2,
-            0.5,
-            1.5,
-            3.0,
-            10.0,
-        ],
-    };
-
-    const curve =
-        curves[risk];
-
-    /*
-     * Scale the predefined curve to the requested row count.
-     */
-    const multiplierIndex =
-        Math.min(
-            curve.length - 1,
-            Math.floor(
-                (position /
-                    Math.max(
-                        slots - 1,
-                        1
-                    )) *
-                    curve.length
-            )
-        );
-
-    const multiplier =
-        curve[
-            multiplierIndex
-        ] || 1;
-
-    return {
-        position,
-        path,
-        multiplier,
-    };
-}
 
 /* =========================================================
  * POST /bets
@@ -431,465 +263,221 @@ router.post(
             const result =
                 await db.transaction(
                     async (client) => {
-                        /*
-                         * Check for an existing request first.
-                         */
-                        const existing =
-                            await client.query(
-                                `
-                                SELECT
-                                    t.game_id
-                                FROM transactions t
-                                WHERE
-                                    t.idempotency_key = $1
-                                LIMIT 1
-                                `,
-                                [
-                                    idempotencyKey,
-                                ]
+                        // Idempotency: never settle the same request twice.
+                        const existing = await client.query(
+                            `SELECT t.game_id FROM transactions t
+                             WHERE t.idempotency_key = $1 LIMIT 1`,
+                            [idempotencyKey]
+                        );
+
+                        if (existing.rows.length) {
+                            const game = await client.query(
+                                `SELECT * FROM games WHERE id = $1`,
+                                [existing.rows[0].game_id]
                             );
-
-                        if (
-                            existing
-                                .rows
-                                .length
-                        ) {
-                            const game =
-                                await client.query(
-                                    `
-                                    SELECT
-                                        *
-                                    FROM games
-                                    WHERE id = $1
-                                    `,
-                                    [
-                                        existing
-                                            .rows[0]
-                                            .game_id,
-                                    ]
-                                );
-
+                            const round = await client.query(
+                                `SELECT server_seed FROM provably_fair_rounds WHERE game_id = $1`,
+                                [existing.rows[0].game_id]
+                            );
                             return {
-                                duplicate:
-                                    true,
-
-                                game:
-                                    game.rows[0],
+                                duplicate: true,
+                                game: game.rows[0],
+                                serverSeed: round.rows.length ? round.rows[0].server_seed : null,
                             };
                         }
 
                         /*
-                         * Lock the wallet so two simultaneous bets
-                         * cannot spend the same balance.
+                         * 1. The wager must be funded by exactly one
+                         *    completed Pi payment. Lock it so it can
+                         *    never fund two bets (no double-spend).
                          */
-                        const wallet =
-                            await client.query(
-                                `
-                                SELECT
-                                    id,
-                                    available_balance,
-                                    locked_balance
-                                FROM wallets
-                                WHERE player_id = $1
-                                FOR UPDATE
-                                `,
-                                [
-                                    playerId,
-                                ]
-                            );
+                        const payRes = await client.query(
+                            `SELECT id, amount, status, used_by_game_id
+                             FROM pi_payments
+                             WHERE pi_payment_id = $1 AND player_id = $2
+                             FOR UPDATE`,
+                            [paymentId, playerId]
+                        );
 
-                        if (
-                            !wallet
-                                .rows
-                                .length
-                        ) {
-                            const error =
-                                new Error(
-                                    "Wallet not found."
-                                );
-
-                            error.code =
-                                "WALLET_NOT_FOUND";
-
-                            throw error;
+                        if (!payRes.rows.length) {
+                            throw codedError("PAYMENT_NOT_FOUND", "No such Pi payment for this player.");
                         }
-
-                        const currentBalance =
-                            Number(
-                                wallet
-                                    .rows[0]
-                                    .available_balance
-                            );
-
-                        if (
-                            currentBalance <
-                            amount
-                        ) {
-                            const error =
-                                new Error(
-                                    "Insufficient balance."
-                                );
-
-                            error.code =
-                                "INSUFFICIENT_BALANCE";
-
-                            throw error;
+                        const payment = payRes.rows[0];
+                        if (payment.status !== "completed") {
+                            throw codedError("PAYMENT_NOT_COMPLETED", "The Pi payment is not completed.");
+                        }
+                        if (payment.used_by_game_id) {
+                            throw codedError("PAYMENT_ALREADY_USED", "This Pi payment already funded a bet.");
+                        }
+                        if (Math.abs(Number(payment.amount) - amount) > 1e-9) {
+                            throw codedError("PAYMENT_AMOUNT_MISMATCH", "Bet amount must equal the Pi payment amount.");
                         }
 
                         /*
-                         * Generate the round before committing the
-                         * financial transaction.
+                         * 2. The provably-fair round must have been
+                         *    committed BEFORE this bet, and be unused.
                          */
-                        const gameResult =
-                            generateResult(
-                                rows,
-                                risk
-                            );
+                        const roundRes = await client.query(
+                            `SELECT id, server_seed, server_seed_hash, client_seed, nonce, revealed
+                             FROM provably_fair_rounds
+                             WHERE id = $1 AND player_id = $2
+                             FOR UPDATE`,
+                            [roundId, playerId]
+                        );
 
-                        const payout =
-                            Number(
-                                (
-                                    amount *
-                                    gameResult.multiplier
-                                ).toFixed(8)
-                            );
-
-                        const profit =
-                            Number(
-                                (
-                                    payout -
-                                    amount
-                                ).toFixed(8)
-                            );
-
-                        const nonce =
-                            Date.now();
-
-                        const clientSeed =
-                            crypto.randomBytes(
-                                16
-                            ).toString(
-                                "hex"
-                            );
+                        if (!roundRes.rows.length) {
+                            throw codedError("ROUND_NOT_FOUND", "No such provably-fair round for this player.");
+                        }
+                        const round = roundRes.rows[0];
+                        if (round.revealed) {
+                            throw codedError("ROUND_ALREADY_USED", "This provably-fair round was already used.");
+                        }
+                        if (!round.server_seed) {
+                            throw codedError("ROUND_INVALID", "Round has no server seed.");
+                        }
 
                         /*
-                         * Commitment hash.
-                         *
-                         * The actual unrevealed server seed should
-                         * be generated and stored by the dedicated
-                         * provably-fair service.
+                         * 3. Derive the outcome EXCLUSIVELY server-side.
+                         *    The client-supplied multiplier/winnings are
+                         *    never read. Ever.
                          */
-                        const serverSeed =
-                            crypto.randomBytes(
-                                32
-                            ).toString(
-                                "hex"
-                            );
-
-                        const serverSeedHash =
-                            crypto
-                                .createHash(
-                                    "sha256"
-                                )
-                                .update(
-                                    serverSeed
-                                )
-                                .digest(
-                                    "hex"
-                                );
-
-                        const resultHash =
-                            crypto
-                                .createHash(
-                                    "sha256"
-                                )
-                                .update(
-                                    [
-                                        serverSeed,
-                                        clientSeed,
-                                        nonce,
-                                        gameResult.path.join(
-                                            ""
-                                        ),
-                                    ].join(
-                                        ":"
-                                    )
-                                )
-                                .digest(
-                                    "hex"
-                                );
+                        const { path, position } = derivePath(
+                            round.server_seed,
+                            clientSeed,
+                            Number(round.nonce),
+                            rows
+                        );
+                        const multiplier = multiplierFor(position, rows, risk);
+                        const payout = Number((amount * multiplier).toFixed(8));
+                        const profit = Number((payout - amount).toFixed(8));
+                        const pathStr = path.join("");
 
                         /*
-                         * Create game.
+                         * 4. Record the settled game, linked to the
+                         *    funding Pi payment.
                          */
-                        const game =
-                            await client.query(
-                                `
-                                INSERT INTO games (
-                                    player_id,
-                                    status,
-                                    bet_amount,
-                                    payout_amount,
-                                    multiplier,
-                                    profit,
-                                    rows,
-                                    risk,
-                                    result_slot,
-                                    path,
-                                    nonce,
-                                    server_seed_hash,
-                                    client_seed,
-                                    completed_at
-                                )
-                                VALUES (
-                                    $1,
-                                    'completed',
-                                    $2,
-                                    $3,
-                                    $4,
-                                    $5,
-                                    $6,
-                                    $7,
-                                    $8,
-                                    $9,
-                                    $10,
-                                    $11,
-                                    $12,
-                                    NOW()
-                                )
-                                RETURNING *
-                                `,
-                                [
-                                    playerId,
-                                    amount,
-                                    payout,
-                                    gameResult.multiplier,
-                                    profit,
-                                    rows,
-                                    risk,
-                                    gameResult.position,
-                                    gameResult.path.join(
-                                        ""
-                                    ),
-                                    nonce,
-                                    serverSeedHash,
-                                    clientSeed,
-                                ]
-                            );
-
-                        const createdGame =
-                            game.rows[0];
-
-                        /*
-                         * Debit wager and credit payout in one
-                         * wallet update.
-                         *
-                         * Net balance change:
-                         *
-                         * payout - wager
-                         */
-                        const newBalance =
-                            Number(
-                                (
-                                    currentBalance -
-                                    amount +
-                                    payout
-                                ).toFixed(8)
-                            );
-
-                        await client.query(
-                            `
-                            UPDATE wallets
-                            SET
-                                available_balance = $1,
-                                updated_at = NOW()
-                            WHERE player_id = $2
-                            `,
+                        const gameRes = await client.query(
+                            `INSERT INTO games (
+                                player_id, status, bet_amount, payout_amount,
+                                multiplier, profit, rows, risk, result_slot,
+                                path, nonce, server_seed_hash, client_seed,
+                                payment_id, completed_at
+                             ) VALUES (
+                                $1, 'completed', $2, $3, $4, $5, $6, $7, $8,
+                                $9, $10, $11, $12, $13, NOW()
+                             ) RETURNING *`,
                             [
-                                newBalance,
-                                playerId,
+                                playerId, amount, payout, multiplier, profit,
+                                rows, risk, position, pathStr, round.nonce,
+                                round.server_seed_hash, clientSeed, paymentId,
                             ]
+                        );
+                        const createdGame = gameRes.rows[0];
+
+                        /*
+                         * 5. Reveal the server seed and retire the round.
+                         */
+                        await client.query(
+                            `UPDATE provably_fair_rounds
+                             SET revealed = TRUE, revealed_at = NOW(), game_id = $1
+                             WHERE id = $2`,
+                            [createdGame.id, roundId]
                         );
 
                         /*
-                         * Wager transaction.
+                         * 6. Consume the Pi payment (1:1 link).
                          */
                         await client.query(
-                            `
-                            INSERT INTO transactions (
-                                player_id,
-                                game_id,
-                                type,
-                                status,
-                                amount,
-                                balance_before,
-                                balance_after,
-                                idempotency_key,
-                                metadata,
-                                completed_at
-                            )
-                            VALUES (
-                                $1,
-                                $2,
-                                'wager',
-                                'completed',
-                                $3,
-                                $4,
-                                $5,
-                                $6,
-                                $7,
-                                NOW()
-                            )
-                            `,
-                            [
-                                playerId,
-                                createdGame.id,
-                                amount,
-                                currentBalance,
-                                Number(
-                                    (
-                                        currentBalance -
-                                        amount
-                                    ).toFixed(8)
-                                ),
-                                idempotencyKey,
-                                {
-                                    rows,
-                                    risk,
-                                },
-                            ]
+                            `UPDATE pi_payments
+                             SET used_by_game_id = $1, updated_at = NOW()
+                             WHERE pi_payment_id = $2`,
+                            [createdGame.id, paymentId]
                         );
 
                         /*
-                         * Payout transaction.
-                         *
-                         * The same idempotency key cannot be reused
-                         * here because transactions.idempotency_key
-                         * is unique.
+                         * 7. Credit the payout to the internal wallet.
+                         *    The wager itself arrived on-chain via the Pi
+                         *    payment, so only the payout moves the
+                         *    internal balance.
                          */
                         await client.query(
-                            `
-                            INSERT INTO transactions (
-                                player_id,
-                                game_id,
-                                type,
-                                status,
-                                amount,
-                                balance_before,
-                                balance_after,
-                                reference,
-                                metadata,
-                                completed_at
-                            )
-                            VALUES (
-                                $1,
-                                $2,
-                                'payout',
-                                'completed',
-                                $3,
-                                $4,
-                                $5,
-                                $6,
-                                $7,
-                                NOW()
-                            )
-                            `,
+                            `INSERT INTO wallets (player_id)
+                             VALUES ($1) ON CONFLICT (player_id) DO NOTHING`,
+                            [playerId]
+                        );
+                        const walletRes = await client.query(
+                            `SELECT available_balance FROM wallets
+                             WHERE player_id = $1 FOR UPDATE`,
+                            [playerId]
+                        );
+                        const currentBalance = Number(walletRes.rows[0].available_balance);
+                        const newBalance = Number((currentBalance + payout).toFixed(8));
+                        await client.query(
+                            `UPDATE wallets
+                             SET available_balance = $1, updated_at = NOW()
+                             WHERE player_id = $2`,
+                            [newBalance, playerId]
+                        );
+
+                        /*
+                         * 8. Ledger entries: the on-chain wager and the
+                         *    internal payout credit.
+                         */
+                        await client.query(
+                            `INSERT INTO transactions (
+                                player_id, game_id, type, status, amount,
+                                balance_before, balance_after,
+                                idempotency_key, reference, metadata, completed_at
+                             ) VALUES (
+                                $1, $2, 'wager', 'completed', $3,
+                                $4, $4, $5, $6, $7, NOW()
+                             )`,
                             [
-                                playerId,
-                                createdGame.id,
-                                payout,
-                                Number(
-                                    (
-                                        currentBalance -
-                                        amount
-                                    ).toFixed(8)
-                                ),
-                                newBalance,
+                                playerId, createdGame.id, amount,
+                                currentBalance, idempotencyKey, paymentId,
+                                { onchain: true, rows, risk },
+                            ]
+                        );
+                        await client.query(
+                            `INSERT INTO transactions (
+                                player_id, game_id, type, status, amount,
+                                balance_before, balance_after,
+                                reference, metadata, completed_at
+                             ) VALUES (
+                                $1, $2, 'payout', 'completed', $3,
+                                $4, $5, $6, $7, NOW()
+                             )`,
+                            [
+                                playerId, createdGame.id, payout,
+                                currentBalance, newBalance,
                                 `payout:${createdGame.id}`,
-                                {
-                                    multiplier:
-                                        gameResult.multiplier,
-                                },
+                                { multiplier },
                             ]
                         );
 
                         /*
-                         * Update player statistics.
+                         * 9. Player statistics.
                          */
                         await client.query(
-                            `
-                            UPDATE players
-                            SET
-                                balance = $1,
-                                total_wagered =
-                                    total_wagered + $2,
-                                total_won =
-                                    total_won + $3,
-                                total_games =
-                                    total_games + 1,
-                                last_seen_at = NOW(),
-                                updated_at = NOW()
-                            WHERE id = $4
-                            `,
-                            [
-                                newBalance,
-                                amount,
-                                payout,
-                                playerId,
-                            ]
-                        );
-
-                        /*
-                         * Store the public commitment.
-                         *
-                         * NOTE:
-                         * serverSeed itself is deliberately NOT
-                         * returned to the client at this stage.
-                         */
-                        await client.query(
-                            `
-                            INSERT INTO provably_fair_rounds (
-                                game_id,
-                                server_seed_hash,
-                                client_seed,
-                                nonce,
-                                algorithm,
-                                hmac_algorithm,
-                                result_hash,
-                                revealed
-                            )
-                            VALUES (
-                                $1,
-                                $2,
-                                $3,
-                                $4,
-                                'sha256',
-                                'sha256',
-                                $5,
-                                FALSE
-                            )
-                            `,
-                            [
-                                createdGame.id,
-                                serverSeedHash,
-                                clientSeed,
-                                nonce,
-                                resultHash,
-                            ]
+                            `UPDATE players
+                             SET balance = $1,
+                                 total_wagered = total_wagered + $2,
+                                 total_won = total_won + $3,
+                                 total_games = total_games + 1,
+                                 last_seen_at = NOW(),
+                                 updated_at = NOW()
+                             WHERE id = $4`,
+                            [newBalance, amount, payout, playerId]
                         );
 
                         return {
-                            duplicate:
-                                false,
-
-                            game:
-                                createdGame,
-
+                            duplicate: false,
+                            game: createdGame,
                             payout,
-
                             newBalance,
-
-                            resultHash,
+                            serverSeed: round.server_seed,
+                            path: pathStr,
+                            position,
                         };
                     }
                 );
@@ -901,6 +489,8 @@ router.post(
                     data: {
                         game:
                             result.game,
+                        serverSeed:
+                            result.serverSeed,
                         duplicate:
                             true,
                     },
@@ -957,8 +547,8 @@ router.post(
                             result.game
                                 .client_seed,
 
-                        resultHash:
-                            result.resultHash,
+                        serverSeed:
+                            result.serverSeed,
 
                         createdAt:
                             result.game
