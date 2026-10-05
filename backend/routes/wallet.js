@@ -36,6 +36,10 @@ const config = require("../config");
 
 const router = express.Router();
 
+const {
+    authenticate: requirePlayer,
+} = require("../middleware/auth");
+
 /* =========================================================
  * Constants
  * ========================================================= */
@@ -92,24 +96,6 @@ function errorResponse(
                 getRequestId(req),
         },
     });
-}
-
-function requirePlayer(
-    req,
-    res,
-    next
-) {
-    if (!req.player?.id) {
-        return errorResponse(
-            res,
-            401,
-            "AUTH_REQUIRED",
-            "Player authentication is required.",
-            req
-        );
-    }
-
-    next();
 }
 
 function parseLimit(value) {
@@ -1036,6 +1022,37 @@ router.post(
                                 ]
                             );
 
+                        /*
+                         * TODO (withdrawals): on-chain Pi transfer.
+                         *
+                         * The funds above are locked and the
+                         * withdrawal is recorded as 'pending'.
+                         * NOTHING has moved on-chain yet — do not
+                         * mark this 'completed' until the Pi
+                         * Platform confirms.
+                         *
+                         * When ready, perform the app-to-user (A2U)
+                         * transfer here (or in a background worker
+                         * that picks up pending withdrawals):
+                         *
+                         *   const a2u =
+                         *       await piApi.createAppToUserPayment({
+                         *           uid: <player pi uid>,
+                         *           amount,
+                         *           memo: "Plinko-on-Pi withdrawal",
+                         *           metadata: {
+                         *               withdrawalId:
+                         *                   transaction.rows[0].id,
+                         *           },
+                         *       });
+                         *
+                         * Then store a2u.identifier on the
+                         * transaction, unlock the locked balance,
+                         * and flip status to 'completed' only after
+                         * the Pi Platform reports success. On
+                         * failure, unlock back to available and mark
+                         * 'failed' with the reason.
+                         */
                         return {
                             transaction:
                                 transaction
@@ -1076,7 +1093,7 @@ router.post(
                         result.balance,
 
                     message:
-                        "Withdrawal submitted for processing.",
+                        "Withdrawal submitted for processing. The on-chain Pi transfer is not yet wired — funds are locked and the withdrawal stays pending until the A2U transfer is implemented.",
                 },
 
                 requestId:

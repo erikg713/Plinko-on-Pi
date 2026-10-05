@@ -1,1 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: plinko
+      POSTGRES_PASSWORD: plinko_dev_only
+      POSTGRES_DB: plinko
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plinko -d plinko"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://plinko:plinko_dev_only@postgres:5432/plinko
+      # Fill these in via an untracked .env file or environment —
+      # never commit real secrets.
+      PI_API_KEY: ${PI_API_KEY:-}
+      PI_API_URL: ${PI_API_URL:-https://api.minepi.com}
+      PI_APP_ID: ${PI_APP_ID:-}
+      JWT_SECRET: ${JWT_SECRET:-dev_only_change_me}
+      SESSION_SECRET: ${SESSION_SECRET:-dev_only_change_me}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "node scripts/migrate.js && node server.js"
+
+volumes:
+  pgdata:

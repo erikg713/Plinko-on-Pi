@@ -471,56 +471,12 @@ function registerApiRoot(
 function registerApiRoutes(
     app
 ) {
-    /*
-     * The individual route modules can be added here
-     * as the backend grows.
-     *
-     * Example:
-     *
-     * const playerRoutes =
-     *     require("./src/api/routes/player");
-     *
-     * app.use(
-     *     `${config.app.apiPrefix}/player`,
-     *     playerRoutes
-     * );
-     */
+    const apiRouter =
+        require("./routes");
 
-    registerPlaceholderRoutes(
-        app
-    );
-}
-
-/* =========================================================
- * Temporary route layer
- *
- * This keeps the server bootable while the real route
- * modules are being built.
- * ========================================================= */
-
-function registerPlaceholderRoutes(
-    app
-) {
-    const prefix =
-        config.app.apiPrefix;
-
-    app.get(
-        `${prefix}/status`,
-        (req, res) => {
-            res.json({
-                status:
-                    "online",
-
-                service:
-                    config.app.name,
-
-                version:
-                    config.app.version,
-
-                requestId:
-                    req.requestId,
-            });
-        }
+    app.use(
+        config.app.apiPrefix,
+        apiRouter
     );
 }
 
@@ -1097,13 +1053,3 @@ module.exports = {
     start,
     shutdown,
 };
-
-function registerApiRoutes(app) {
-    const adminRoutes =
-        require("./routes/admin");
-
-    app.use(
-        `${config.app.apiPrefix}/admin`,
-        adminRoutes
-    );
-}
