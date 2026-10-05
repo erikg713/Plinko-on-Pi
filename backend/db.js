@@ -171,14 +171,6 @@ async function query(
         );
     }
 
-    const database = createPool();
-
-    if (!database) {
-        throw new Error(
-            "Database is not configured."
-        );
-    }
-
     if (
         typeof text !== "string" ||
         !text.trim()
@@ -191,6 +183,14 @@ async function query(
     if (!Array.isArray(values)) {
         throw new TypeError(
             "SQL query values must be an array."
+        );
+    }
+
+    const database = createPool();
+
+    if (!database) {
+        throw new Error(
+            "Database is not configured."
         );
     }
 
