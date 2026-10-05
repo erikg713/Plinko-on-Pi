@@ -40,6 +40,11 @@ router.use(
 );
 
 router.use(
+    "/payments",
+    require("./payments")
+);
+
+router.use(
     "/provably-fair",
     require("./provablyFair")
 );
