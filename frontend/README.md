@@ -2,58 +2,30 @@
 
 ![Pi Network Logo](assets/pi-logo.png)
 
-**🏆 Drop balls. Chase multipliers. Win Pi. Provably fair. Pi Network adoption in action.**
+**Drop balls. Chase multipliers. Win Pi.**
 
-## The Vision
+Pi Plinko is a mobile-first Plinko game built for the Pi Network ecosystem. Players place Pi bets, watch the ball drop through a pegged board, and aim for multipliers up to x1000 using Pi SDK payments and a verifiable fairness model.
 
-Pi Plinko is a **mobile-first gambling dApp** built exclusively for the Pi Network ecosystem. This project demonstrates:
+The project is designed to demonstrate how lightweight browser games can integrate smoothly with Pi Browser, deliver fast mobile play, and support real utility within the Pi ecosystem.
 
-1. **Real economic utility** – Pioneers bet actual Pi currency via SDK, watching live payouts.
-2. **Scalable engagement** – Addictive Plinko mechanics drive user retention and platform adoption.
-3. **Cryptographic fairness** – Full verifiable randomization using client/server seed hashing (same tech as Stake.com, BC.Game).
-4. **Lightweight Pi Browser integration** – Vanilla JS + Canvas means fast load times and zero bloat.
+## 🚀 Features
 
-**Why judges should care:** This isn't a toy. It's a production-ready game that could drive millions of Pi transactions on Mainnet. The code is clean, the UX is smooth, and the fairness model is bulletproof.
-
-## 🎯 Key Features (Judge Checklist)
-
-✅ **Pi SDK v2.0 integration**
-- Full `createPayment()` and app-to-user transfers
-- Seamless auth via Pi Browser
-- Real Pi bets → real payouts (no fake currency)
-
-✅ **Provably fair randomization**
-- Client seed + server seed + nonce → SHA256 deterministic outcomes
-- Player can audit every bet independently post-game
-- No "trust us" – pure cryptography
-
-✅ **Production-grade UX**
-- Canvas-based physics engine (realistic ball bounces)
-- Responsive mobile-first design (Pi Browser optimized)
-- Dark mode, sound effects, touch controls
-- Auto-bet strategies and leaderboard tracking
-
-✅ **Hackathon-quality code**
-- Vanilla JS (no bloated frameworks)
-- Clean architecture (separation of physics, UI, payments)
-- Deployment-ready (static hosting, Pi Developer Portal integration)
-- Full fairness verification tooling
-
-✅ **Scalability potential**
-- Can handle 1000s of concurrent players (static frontend)
-- Backend-optional for MVP (full fairness possible client-side)
-- Analytics-ready (track daily active users, retention, payout rates)
+- Real Pi bets and payouts via Pi SDK
+- Canvas-based Plinko gameplay and physics
+- Adjustable risk levels and multiplier ranges
+- Provably fair outcomes using client/server seed logic
+- Auto-bet mode and strategy support
+- Leaderboards, stats, and challenge tracking
+- Responsive UI with dark mode and touch-friendly controls
+- Static frontend deployment for Pi Browser apps
 
 ## 🛠️ Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| **Frontend** | HTML5, Canvas 2D, Vanilla JS |
-| **Payments** | Pi SDK v2.0 (`sdk.minepi.com/pi-sdk.js`) |
-| **Styling** | CSS3 + Flexbox (responsive, <50KB) |
-| **Hosting** | Vercel / Netlify / GitHub Pages (free HTTPS) |
-| **Fairness** | Client-seed + server-seed HMAC-SHA256 |
-| **Backend (optional)** | Node.js/Express for seed management & logging |
+- Frontend: HTML5, Canvas, Vanilla JavaScript
+- Pi integration: Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
+- Styling: CSS3 with responsive mobile-first design
+- Hosting: Vercel, Netlify, or similar static hosting
+- Fairness model: client seed + server seed + nonce validation
 
 ## 📱 Screenshots
 
@@ -64,109 +36,63 @@ Pi Plinko is a **mobile-first gambling dApp** built exclusively for the Pi Netwo
 ![Gameplay 5](assets/screenshot5.jpg)
 ![Gameplay 6](assets/screenshot6.jpg)
 
-## 🚀 Quick Start (30 seconds)
+## 🚀 Quick Start
 
-1. Clone:
+1. Clone the repository:
    ```bash
    git clone https://github.com/erikg713/Plinko-on-Pi.git
    cd Plinko-on-Pi/frontend
    ```
 
-2. Deploy (pick one):
-   - **Vercel**: `vercel deploy`
-   - **Netlify**: Drag & drop `frontend/` folder
-   - **Local**: Open `index.html` in browser
+2. Deploy the `frontend` folder to a static host such as Vercel or Netlify.
 
-3. Register on Pi Developer Portal (`develop.pi` in Pi Browser)
+3. Register the app in the Pi Developer Portal and configure the app URL for Pi Browser.
 
-4. Test in Pi Browser (Testnet or Mainnet)
+4. Test the game in Pi Browser on Testnet or Mainnet.
 
-## 🔒 Provably Fair Deep Dive
+## 🔒 Provably Fair
 
-**The fairness model every blockchain gambler demands:**
+Pi Plinko uses a verifiable random generation flow built around:
 
-```
-Round Flow:
-  1. Server generates random seed, publishes ONLY its SHA256 hash (commitment)
-  2. Player sets/changes client seed (default: browser-generated)
-  3. Nonce increments (0, 1, 2, ...) per bet
-  
-Outcome Generation:
-  outcome_hash = HMAC-SHA256(server_seed, client_seed + "-" + nonce)
-  path_bits = hex_to_binary(outcome_hash[:4])  // First 4 hex chars
-  
-  For each row (0 to N):
-    direction[i] = path_bits[i] % 2  // 0=left, 1=right
-  
-  final_slot = count_lefts(path_bits)
-  multiplier = payout_table[final_slot]
+- a client seed
+- a server seed
+- a nonce per round
 
-Post-Game Verification:
-  player_computed = verify_plinko(server_seed, client_seed, nonce)
-  if (player_computed == game_result) ✅ provably fair
-  else ❌ rigged (doesn't happen)
-```
+Before a round, the server commits to a seed hash. The final game outcome is then derived from the combined seed and nonce values, allowing players to verify the result after the round is complete. This provides a transparent fairness mechanism rather than relying on blind trust.
 
-**Why this matters:**
-- Outcome determined **before drop** (can't be manipulated mid-flight)
-- Unpredictable to both player **and** server (neither controls result alone)
-- Verifiable by **anyone** with math skills (no black box)
-- Same model used by licensed gambling platforms (Stake.com, BC.Game, FairSpin)
+## 🎯 Why It Matters
 
-## 🎮 Game Design
+This project highlights a practical and user-friendly use case for Pi Network:
 
-| Mechanic | Implementation |
-|----------|---|
-| **Risk Levels** | 8, 12, 16 peg rows → multiplier ranges (x2–x100, x2–x500, x5–x1000) |
-| **House Edge** | Adjustable per risk level (1–5% standard) |
-| **Auto-Bet** | Player-configurable loops with loss-chase or win-chase strategies |
-| **Stats** | Win rate, avg multiplier, biggest win, session P&L |
-| **Leaderboard** | Daily/weekly/all-time top earners |
-| **Challenges** | Time-limited goals (e.g., "hit 3x multiplier 5 times") |
+- real Pi utility in a browser-based game
+- mobile-first gameplay optimized for Pi Browser
+- transparent fairness model for trust and adoption
+- lightweight architecture that is easy to deploy and extend
 
-## 📊 Adoption Potential
+## 🌐 Deployment Notes
 
-**What makes this a Pi Network game-changer:**
+This frontend is designed for static hosting and can be deployed with minimal configuration. For a production-ready rollout, the project can be extended with:
 
-1. **Revenue driver**: 1–5% house edge on real Pi bets = direct platform income
-2. **User retention**: Gambling is addictive; players return daily
-3. **Viral growth**: Leaderboards + social proof drive referrals
-4. **Mainnet readiness**: Can launch day-one on mainnet with zero infrastructure changes
-5. **Extensible**: Can add tournaments, team play, NFT multipliers, liquidity pools
-
-## 🌐 Deployment Checklist
-
-- [ ] Push code to GitHub repo
-- [ ] Deploy frontend to Vercel/Netlify
-- [ ] Register app on Pi Developer Portal (`develop.pi`)
-- [ ] Test in Pi Browser on Testnet
-- [ ] Set up analytics (Google Analytics, Mixpanel, or custom)
-- [ ] Configure backend seed server (if pursuing full provable fairness audit trail)
-- [ ] Launch on Mainnet
+- backend seed generation
+- payout verification
+- secure game logging
+- leaderboard persistence
+- analytics and user tracking
 
 ## 🤝 Contributing
 
-Contributions wanted. **High-impact priorities:**
+Contributions are welcome. Priority areas include:
 
-- **Gameplay**: Physics tuning, multiplier balancing, new mechanics
-- **Fairness**: Backend seed server, player verification UI
-- **UX**: Sound design, animations, accessibility (mobile VoiceOver)
-- **Analytics**: Retention tracking, payout auditing, fraud detection
-- **Scaling**: WebSocket multiplayer, live chat, social features
-
-## 💰 Business Model (Optional)
-
-- **House edge**: 1–5% on all bets (standard in crypto gambling)
-- **Premium battle pass**: Cosmetics, custom balls, leaderboard badges
-- **Sponsorships**: Pi Network events, hackathons, developer grants
-- **Liquidty pools**: Advanced players can earn yields on house liquidity
+- gameplay tuning and physics polish
+- fairness verification tooling
+- sound and animation improvements
+- mobile UX enhancements
+- backend infrastructure for seed management and analytics
 
 ## ⚠️ Disclaimer
 
-This project is for **hackathon showcase and educational purposes**. Gambling carries real financial risk. Comply with local regulations and platform policies. Play responsibly.
+This project is for educational and showcase purposes. Gambling carries financial risk. Please play responsibly and comply with all local laws and platform policies.
 
 ---
 
-**Built to win Pi Hackathons and drive adoption on the Open Network.** 🔥💰🚀
-
-For questions, reach out or open an issue. This is just the beginning.
+Built for the Pi ecosystem and designed to showcase a mobile-first gaming experience on Pi Browser.
