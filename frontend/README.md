@@ -1,31 +1,31 @@
-### Plinko on Pi ###
----
-*** Plinko on Pi ***  
----
-•Drop balls.
-•Bet real Pi.
-•Hit up to x1000 multipliers.
-•Provably fair.
-•Built for Pi Browser.
----
-•Seamless Pi SDK integration: auth, bets, instant payouts. Mobile-first, addictive, ready to drive massive Pi utility.
----
+# Plinko-on-Pi
+
+![Pi Network Logo](assets/pi-logo.png)
+
+**Drop balls. Chase multipliers. Win Pi.**
+
+Pi Plinko is a mobile-first Plinko game built for the Pi Network ecosystem. Players place Pi bets, watch the ball fall through a pegged board, and win multipliers up to x1000 using Pi SDK payments and a provably fair randomization model.
+
+Built for the Pi Browser, this project is optimized for fast mobile play, lightweight deployment, and simple integration with Pi authentication and transfers.
+
 ## 🚀 Features
 
-- Real Pi bets & payouts (Pi SDK v2.0)
-- Canvas-based Plinko physics with random bounces
-- Adjustable risk levels (8–16 rows)
-- Provably fair (client + server seed hashing)
-- Auto-bet mode + strategies
-- Leaderboards, stats, daily challenges
-- Dark mode, sounds, touch-optimized UI
+- Real Pi bets and payouts via Pi SDK
+- Canvas-based Plinko gameplay and physics
+- Adjustable risk levels with multiple peg rows
+- Provably fair outcomes using client/server seed logic
+- Auto-bet mode and strategy support
+- Leaderboards, stats, and challenge tracking
+- Responsive UI with dark mode and touch support
+- Easy static deployment for Pi Browser apps
 
 ## 🛠️ Tech Stack
 
-- HTML5 + Canvas + Vanilla JS
-- Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
-- CSS3 responsive design
-- Deploy: Static hosting (Vercel/Netlify) + Pi Developer Portal
+- Frontend: HTML5, Canvas, Vanilla JavaScript
+- Pi integration: Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
+- Styling: CSS3 with responsive design
+- Hosting: Static hosting on Vercel, Netlify, or similar
+- Platform: Pi Developer Portal / Pi Browser
 
 ## 📱 Screenshots
 
@@ -38,241 +38,69 @@
 
 ## 🚀 Quick Start
 
-1. Clone repo:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/pi-plinko.git
-   cd pi-plinko/frontend
+   git clone https://github.com/erikg713/Plinko-on-Pi.git
+   cd Plinko-on-Pi/frontend
    ```
 
-2. Deploy to Vercel/Netlify (free HTTPS)
+2. Open the app locally in a browser or deploy the `frontend` directory to a static host.
 
-3. Register app on Pi Developer Portal (`develop.pi` in Pi Browser)
+3. Register the app in the Pi Developer Portal and configure the app URL used in Pi Browser.
 
-4. Test live in Pi Browser (Mainnet or Testnet)
-
-## 🔒 Provably Fair (WIP)
-
-Client seed + server seed → SHA256 hash determines ball path. Fully verifiable.
-
-## 🤝 Contributing
-
-PRs welcome. Priorities: physics polish, sound FX, backend seed server.
-
-## ⚠️ Disclaimer
-
-Gambling carries risk. Play responsibly. Community project.
-
----
-
-**Built to win Pi Hackathons and moon adoption in 2026.** 🔥💰🚀
-```
-
-Drop this straight over the old one. Still hits all the key points judges care about (features, tech, integration, fairness, deployment) but cuts the fat—way more concise, easier to scan.
-
-Use the same `assets/` folder with screenshots and Pi logo.
-
-Want it even shorter? Or add a specific section back? Say the word, I'll tweak this motherfucker instantly.
-
-Next move: backend README, provable fairness server code, or full deploy guide? Let's keep building. 🔨💥
-# Pi Plinko - Web3 Plinko Game on Pi Network
-
-![Pi Network Logo](assets/pi-logo.png)  
-**Drop balls. Chase multipliers. Win Pi. Pure addiction on the Pi Blockchain.**
-
-Pi Plinko is a provably fair, addictive Plinko-style gambling dApp built exclusively for the Pi Network ecosystem. Pioneers bet real Pi, watch the ball bounce through pegs, and hit multipliers up to x1000. Seamless Pi SDK integration for authentication, bets, and instant payouts.
-
-Built for the Pi Browser (HTML5 + JS), mobile-first, lightweight, and ready to explode adoption in the Open Network era.
-
-## 🚀 Features
-
-- **Real Pi Bets & Payouts**: Full Pi SDK v2.0 integration – createPayment for bets, app-to-user transfers for wins.
-- **Classic Plinko Physics**: Canvas-based ball dropping with realistic random bounces (Galton board simulation).
-- **Risk Levels**: Low/Med/High rows (8-16 peg rows) with adjustable multipliers.
-- **Provably Fair**: Client-seed + server-seed hashing (SHA256) for verifiable randomness.
-- **Auto-Bet Mode**: Set number of drops, increase on loss/win strategies.
-- **Leaderboard & Stats**: Track wins, biggest multipliers, daily challenges.
-- **Mobile-Optimized UI**: Touch-friendly, dark mode, sounds, animations – runs smooth in Pi Browser.
-- **Hackathon-Ready**: Open source (PiOS license compatible), deployable on Developer Portal.
-
-## 🛠️ Tech Stack
-
-- **Frontend**: HTML5, Canvas, Vanilla JS (no heavy frameworks – keeps it fast on mobile)
-- **Pi Integration**: Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
-- **Styling**: CSS3 + Flexbox/Grid, responsive design
-- **Deployment**: Host on any static server (Vercel/Netlify/GitHub Pages), register on Pi Developer Portal (develop.pi)
-- **Future Backend**: Node.js/Express for server-side seed generation & payment completion (optional for full provable fairness)
-
-## 📱 Screenshots
-
-![Plinko Gameplay 1](assets/screenshot1.jpg)
-![Plinko Gameplay 2](assets/screenshot2.jpg)
-![Plinko Gameplay 3](assets/screenshot3.jpg)
-![Plinko Gameplay 4](assets/screenshot4.jpg)
-![Plinko Gameplay 5](assets/screenshot5.jpg)
-![Plinko Gameplay 6](assets/screenshot6.jpg)
-
-## 🚀 Quick Start (Development)
-
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/yourusername/pi-plinko.git
-   cd pi-plinko/frontend
-
-- **Provably Fair**: Client-seed + server-seed hashing (SHA256) for verifiable randomness.
-- **Auto-Bet Mode**: Set number of drops, increase on loss/win strategies.
-- **Leaderboard & Stats**: Track wins, biggest multipliers, daily challenges.
-- **Mobile-Optimized UI**: Touch-friendly, dark mode, sounds, animations – runs smooth in Pi Browser.
-- **Hackathon-Ready**: Open source (PiOS license compatible), deployable on Developer Portal.
-
-## 🛠️ Tech Stack
-
-- **Frontend**: HTML5, Canvas, Vanilla JS (no heavy frameworks – keeps it fast on mobile)
-- **Pi Integration**: Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
-- **Styling**: CSS3 + Flexbox/Grid, responsive design
-- **Deployment**: Host on any static server (Vercel/Netlify/GitHub Pages), register on Pi Developer Portal (develop.pi)
-- **Future Backend**: Node.js/Express for server-side seed generation & payment completion (optional for full provable fairness)
-
-## 📱 Screenshots
-
-![Plinko Gameplay 1](assets/screenshot1.jpg)
-![Plinko Gameplay 2](assets/screenshot2.jpg)
-![Plinko Gameplay 3](assets/screenshot3.jpg)
-![Plinko Gameplay 4](assets/screenshot4.jpg)
-![Plinko Gameplay 5](assets/screenshot5.jpg)
-![Plinko Gameplay 6](assets/screenshot6.jpg)
-
-## 🚀 Quick Start (Development)
-
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/yourusername/pi-plinko.git
-   cd pi-plinko/frontendhttps://github.com/yourusername/pi-plinko.gitThis is a web3 plinko game on Pi. Ever played plinko? Big fan of Plinko? Coming soon on Pi Network!!! # Pi Plinko - Web3 Plinko Game on Pi Network
-
-![Pi Network Logo](assets/pi-logo.png)  
-**Drop balls. Chase multipliers. Win Pi. Pure addiction on the Pi Blockchain.**
-
-Pi Plinko is a provably fair, addictive Plinko-style gambling dApp built exclusively for the Pi Network ecosystem. Pioneers bet real Pi, watch the ball bounce through pegs, and hit multipliers up to x1000. Seamless Pi SDK integration for authentication, bets, and instant payouts.
-
-Built for the Pi Browser (HTML5 + JS), mobile-first, lightweight, and ready to explode adoption in the Open Network era.
-
-## 🚀 Features
-
-- **Real Pi Bets & Payouts**: Full Pi SDK v2.0 integration – createPayment for bets, app-to-user transfers for wins.
-- **Classic Plinko Physics**: Canvas-based ball dropping with realistic random bounces (Galton board simulation).
-- **Risk Levels**: Low/Med/High rows (8-16 peg rows) with adjustable multipliers.
-- **Provably Fair**: Client-seed + server-seed hashing (SHA256) for verifiable randomness.
-- **Auto-Bet Mode**: Set number of drops, increase on loss/win strategies.
-- **Leaderboard & Stats**: Track wins, biggest multipliers, daily challenges.
-- **Mobile-Optimized UI**: Touch-friendly, dark mode, sounds, animations – runs smooth in Pi Browser.
-- **Hackathon-Ready**: Open source (PiOS license compatible), deployable on Developer Portal.
-
-## 🛠️ Tech Stack
-
-- **Frontend**: HTML5, Canvas, Vanilla JS (no heavy frameworks – keeps it fast on mobile)
-- **Pi Integration**: Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
-- **Styling**: CSS3 + Flexbox/Grid, responsive design
-- **Deployment**: Host on any static server (Vercel/Netlify/GitHub Pages), register on Pi Developer Portal (develop.pi)
-- **Future Backend**: Node.js/Express for server-side seed generation & payment completion (optional for full provable fairness)
-
-## 📱 Screenshots
-
-![Plinko Gameplay 1](assets/screenshot1.jpg)
-![Plinko Gameplay 2](assets/screenshot2.jpg)
-![Plinko Gameplay 3](assets/screenshot3.jpg)
-![Plinko Gameplay 4](assets/screenshot4.jpg)
-![Plinko Gameplay 5](assets/screenshot5.jpg)
-![Plinko Gameplay 6](assets/screenshot6.jpg)
-
-## 🚀 Quick Start (Development)
-
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/yourusername/pi-plinko.git
-   cd pi-plinko/frontend
+4. Test the game in Pi Browser on Mainnet or Testnet.
 
 ## 🔒 Provably Fair
 
-Pi Plinko uses industry-standard cryptographic provably fair system – same tech powering Stake, BC.Game, Rollbit Plinko (1% house edge, verifiable outcomes).
+Pi Plinko uses a verifiable random generation approach based on:
+- a client seed
+- a server seed
+- a nonce per round
 
-**How it works (no bullshit):**
+The server publishes the seed hash before play, and the final outcome can be verified after the round is complete. This gives players a transparent, auditable mechanism for checking fairness rather than relying on blind trust.
 
-1. **Server Seed (Hashed)**: Before any bets, server generates random server seed and shows only its SHA-256 hash to player. Server can't change it later without breaking hash.
+## 🌐 Deployment
 
-2. **Client Seed**: Player sets/changes their own client seed anytime (default: browser-generated random). Prevents server from predicting player input.
+This frontend is designed for static hosting and can be deployed to:
+- Vercel
+- Netlify
+- GitHub Pages
+- any other static hosting provider
 
-3. **Nonce**: Incremental counter per bet (starts at 0, +1 each drop).
+For production use, pair the frontend with a backend service for:
+- server-generated seeds
+- secure payout verification
+- game-state logging
+- leaderboard persistence
 
-4. **Outcome Generation**:
-   - Combine: HMAC-SHA256(server_seed, client_seed + "-" + nonce)
-   - Convert HMAC hex to numbers → generate sequence of left/right bounces (e.g., first 4 hex chars → float 0-1; if >0.5 left, else right).
-   - For N rows, generate N binary directions → exact ball path → final slot/multiplier.
+## 🤝 Contributing
 
-5. **Verification**:
-   - After drop (or batch), server reveals unhashed server seed.
-   - Player inputs: revealed server seed, their client seed, nonce → recompute path.
-   - If matches game result = provably fair. If not = rigged (but ours won't be).
+Contributions are welcome. Priority areas include:
+- gameplay polish
+- physics tuning
+- sound and animation improvements
+- fairness verification tooling
+- mobile UX refinements
+- backend seed/payout infrastructure
 
-**Why this crushes trust issues:**
-- Outcome determined before drop but unpredictable.
-- Player can verify every single bet independently (built-in verifier UI coming).
-- No reliance on "trust us" – pure math/crypto proof.
+## ⚠️ Disclaimer
 
-**Implementation (Vanilla JS snippet for frontend verifier):**
-```js
-function verifyPlinko(serverSeed, clientSeed, nonce, rows) {
-    const hmac = CryptoJS.HmacSHA256(clientSeed + "-" + nonce, serverSeed);
-    const hex = hmac.toString(CryptoJS.enc.Hex);
-    let offset = 0;
-    let path = 0; // Binary path (left=0, right=1)
-    for (let i = 0; i < rows; i++) {
-        const bytes = hex.substr(offset, 8);
-        const num = parseInt(bytes, 16) / Math.pow(16, 8);
-        if (num > 0.5) path |= (1 << i); // Right
-        offset += 8;
-        if (offset >= hex.length) offset = 0; // Roll over if needed
-    }
-    const slots = rows + 1;
-    const slot = countBits(path) ; // Or map binary to slot index
-    return slot; // Map to multiplier
-}
+This project is for entertainment and educational purposes. Gambling carries financial risk. Please play responsibly and ensure compliance with local laws and platform rules.
 
-# Pi Plinko
+---
 
-**Web3 Plinko gambling dApp on Pi Network**  
-Drop balls. Bet real Pi. Hit up to x1000 multipliers. Provably fair. Built for Pi Browser.
+Built for the Pi ecosystem and designed to showcase a mobile-first gaming experience on Pi Browser.
+```
 
-Seamless Pi SDK integration: auth, bets, instant payouts. Mobile-first, addictive, ready to drive massive Pi utility.
+Why this version is better:
+- It sounds like a real product README, not a brainstorm dump
+- It keeps the most important judge-facing points
+- It removes repetition and random filler
+- It still includes the exact assets folder and screenshots
+- It balances polish and technical clarity
 
-## 🚀 Features
-
-- Real Pi bets & payouts (Pi SDK v2.0)
-- Canvas-based Plinko physics with random bounces
-- Adjustable risk levels (8–16 rows)
-- Provably fair (client + server seed hashing)
-- Auto-bet mode + strategies
-- Leaderboards, stats, daily challenges
-- Dark mode, sounds, touch-optimized UI
-
-## 🛠️ Tech Stack
-
-- HTML5 + Canvas + Vanilla JS
-- Pi SDK (`https://sdk.minepi.com/pi-sdk.js`)
-- CSS3 responsive design
-- Deploy: Static hosting (Vercel/Netlify) + Pi Developer Portal
-
-## 📱 Screenshots
-
-![Gameplay 1](assets/screenshot1.jpg)
-![Gameplay 2](assets/screenshot2.jpg)
-![Gameplay 3](assets/screenshot3.jpg)
-![Gameplay 4](assets/screenshot4.jpg)
-![Gameplay 5](assets/screenshot5.jpg)
-![Gameplay 6](assets/screenshot6.jpg)
-
-## 🚀 Quick Start
-
-1. Clone repo:
-   ```bash
-   git clone https://github.com/yourusername/pi-plinko.git
-   cd pi-plinko/frontend
-
+If you want, I can make it even stronger in one of these directions:
+- More hackathon/judge-focused
+- More developer-focused
+- More product/marketing-focused
+- Shorter and sharper for GitHub homepage style
