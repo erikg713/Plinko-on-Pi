@@ -96,3 +96,5 @@ This project is for educational and showcase purposes. Gambling carries financia
 ---
 
 Built for the Pi ecosystem and designed to showcase a mobile-first gaming experience on Pi Browser.
+```
+
