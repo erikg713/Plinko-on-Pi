@@ -10,8 +10,13 @@ router.use(
 );
 
 router.use(
-    "/bets",
-    require("./bets")
+    "/runs",
+    require("./runs")
+);
+
+router.use(
+    "/store",
+    require("./store")
 );
 
 router.use(
@@ -42,11 +47,6 @@ router.use(
 router.use(
     "/payments",
     require("./payments")
-);
-
-router.use(
-    "/provably-fair",
-    require("./provablyFair")
 );
 
 module.exports = router;
