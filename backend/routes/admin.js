@@ -256,9 +256,9 @@ router.get(
         async (req, res) => {
             const [
                 players,
-                games,
-                wagers,
-                payouts,
+                runs,
+                points,
+                storeRevenue,
             ] = await Promise.all([
                 db.scalar(
                     `
@@ -270,42 +270,32 @@ router.get(
                 db.scalar(
                     `
                     SELECT COUNT(*)
-                    FROM games
+                    FROM skill_runs
+                    WHERE status = 'scored'
                     `
                 ),
 
                 db.scalar(
                     `
                     SELECT COALESCE(
-                        SUM(bet_amount),
+                        SUM(points),
                         0
                     )
-                    FROM games
-                    WHERE status = 'completed'
+                    FROM skill_runs
+                    WHERE status = 'scored'
                     `
                 ),
 
                 db.scalar(
                     `
                     SELECT COALESCE(
-                        SUM(payout_amount),
+                        SUM(price_pi),
                         0
                     )
-                    FROM games
-                    WHERE status = 'completed'
+                    FROM store_purchases
                     `
                 ),
             ]);
-
-            const totalWagered =
-                Number(
-                    wagers || 0
-                );
-
-            const totalPayouts =
-                Number(
-                    payouts || 0
-                );
 
             res.json({
                 data: {
@@ -314,18 +304,22 @@ router.get(
                             players || 0
                         ),
 
-                    games:
+                    skillRuns:
                         Number(
-                            games || 0
+                            runs || 0
                         ),
 
-                    totalWagered,
+                    totalPointsScored:
+                        Number(
+                            points || 0
+                        ),
 
-                    totalPayouts,
-
-                    grossGamingRevenue:
-                        totalWagered -
-                        totalPayouts,
+                    /* Pi from fixed-price store items (drops,
+                     * cosmetics) — never from wagering. */
+                    storeRevenuePi:
+                        Number(
+                            storeRevenue || 0
+                        ),
                 },
 
                 requestId:
@@ -716,26 +710,24 @@ router.get(
                 await db.query(
                     `
                     SELECT
-                        g.id,
-                        g.player_id,
+                        r.id,
+                        r.player_id,
                         p.username,
-                        g.status,
-                        g.bet_amount,
-                        g.payout_amount,
-                        g.multiplier,
-                        g.profit,
-                        g.rows,
-                        g.risk,
-                        g.result_slot,
-                        g.nonce,
-                        g.server_seed_hash,
-                        g.created_at,
-                        g.completed_at
-                    FROM games g
+                        r.status,
+                        r.rows,
+                        r.spread,
+                        r.drop_x,
+                        r.target_bin,
+                        r.result_bin,
+                        r.points,
+                        r.hit_target,
+                        r.started_at,
+                        r.submitted_at
+                    FROM skill_runs r
                     INNER JOIN players p
-                        ON p.id = g.player_id
+                        ON p.id = r.player_id
                     ORDER BY
-                        g.created_at DESC
+                        r.started_at DESC
                     LIMIT $1
                     OFFSET $2
                     `,
