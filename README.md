@@ -1,119 +1,128 @@
-# Plinko-on-Pi
+# Plinko-on-Pi — Skill Edition
 
-A Plinko betting game for the Pi Network, built for the Pi Browser.
-Players sign in with Pi, fund each bet with a real Pi payment, and
-winnings land in an in-app balance that can be withdrawn to their
-Pi wallet.
+A Plinko **skill game** for the Pi Network, built for the Pi Browser.
+
+**There is no betting here.** No wagers, no stakes, no payouts, no
+withdrawals. Players sign in with Pi, aim each drop (drop position +
+release timing), and score **points**. Pi payments exist only for
+fixed-price store items — extra drop packs and cosmetic board themes —
+and buying never affects scoring.
 
 ## How it works
 
 1. **Sign in** — `Pi.authenticate(["username", "payments"])`; the
    access token is verified server-side via `GET api.minepi.com/v2/me`.
-2. **Commit** — the server creates a provably-fair round and publishes
-   only `sha256(serverSeed)`. The seed is stored server-side.
-3. **Pay** — the player approves a Pi payment (U2A) in their wallet.
-   The server approves (`/payments/approve`) and completes
-   (`/payments/complete`) it against the Pi Platform API, verifying
-   the txid itself.
-4. **Settle** — `POST /bets` settles the wager **only** against that
-   completed Pi payment (1:1 link, enforced with row locks). The ball
-   path is derived server-side from
-   `HMAC-SHA256(serverSeed, clientSeed + "-" + nonce)`. The client
-   never decides the outcome.
-5. **Reveal** — the server seed is revealed at settlement, so every
-   round is verifiable via `GET /provably-fair/:gameId` or
-   `POST /provably-fair/verify`.
-6. **Withdraw** — winnings move back to the Pi wallet (A2U transfer;
-   currently the on-chain call is a marked TODO — withdrawals stay
-   `pending` until it is wired).
+2. **Aim** — pick a drop position on the slider. Each run, the server
+   assigns a random target bin (shown in gold).
+3. **Release** — time your release on the sweep meter. Releasing near
+   the center earns an aim bonus.
+4. **Score** — the ball falls according to your aim, simulated on
+   your device. The server verifies the submission (path matches the
+   claimed bin, run is fresh, rate limits hold) and scores it in
+   **points only**:
+   - base points from the bin landed in (edge bins score more)
+   - +50% for hitting the target bin
+   - +5% per consecutive target hit (streak, caps at +50%)
+   - up to +25% for release-timing accuracy
+5. **Leaderboards** — top scorers, best streaks, sharpest aim.
+   Points are scores only; they can't become Pi.
 
-## Run it
+Drops are free and regenerate over time (20 max, +1 per 5 minutes).
+The store sells drop packs (10 drops = 1 Pi, 50 drops = 4 Pi) and
+cosmetic board themes (2–5 Pi) at fixed prices. One completed Pi
+payment grants exactly one item — the same anti-double-spend
+guarantee the old wager flow used, repurposed for purchases.
 
-### Backend
+## Why this is not gambling
 
-```bash
-cd backend
-cp .env.example .env        # fill in PI_API_KEY etc.
-npm install
-npm test                   # 23 tests
-npm run db:migrate          # needs DATABASE_URL
-npm start                   # http://localhost:3000
-```
-
-Or with Docker (postgres + backend):
-
-```bash
-docker compose up --build
-```
-
-### Frontend
-
-```bash
-cd frontend
-cp .env.example .env        # VITE_API_URL, VITE_PI_SANDBOX
-npm install
-npm run dev                 # http://localhost:5173
-npm run build               # production build
-```
-
-The app must be opened in the **Pi Browser** for the Pi SDK to work.
-Set `VITE_PI_SANDBOX=true` for Test-Pi.
-
-## Environment variables
-
-Backend (`backend/.env`): `PORT`, `DATABASE_URL`, `PI_API_KEY`,
-`PI_API_URL` (default `https://api.minepi.com`), `PI_APP_ID`,
-`JWT_SECRET`, `SESSION_SECRET`, `CORS_ORIGIN`.
-
-Frontend (`frontend/.env`): `VITE_API_URL`, `VITE_PI_SANDBOX`.
-
-Never commit `.env` files. A root `.env` with a leaked
-`ADMIN_API_KEY` was previously committed to this repo's history —
-**rotate that key**; the file is now untracked and git-ignored.
+- Nothing of value is ever staked on a chance outcome — not Pi,
+  not money, not anything.
+- Winning scores pay out nothing. There is no mechanism anywhere
+  in the code that converts points to Pi or lets a player cash out.
+- The old wager settlement (`POST /bets`), the winnings wallet,
+  withdrawals, and the provably-fair payout machinery were removed
+  (see branch `skill-game-rework`).
+- This rework is built to satisfy Pi's policy against chance-based
+  wagering; approval remains Pi's decision.
 
 ## Project layout
 
 ```
-backend/
-  server.js            Express bootstrap
-  config.js            validated env config (fails closed)
-  db.js                pg pool + transactions
-  lib/
-    piApi.js           Pi Platform API client (server key)
-    provablyFair.js    HMAC-SHA256 commit/reveal/verify
-  routes/
-    auth.js            Pi login (server-side token verification)
-    payments.js        approve / complete / reconcile / list
-    bets.js            payment-linked, server-side settlement
-    provablyFair.js    commit / round / verify
-    wallet.js          balance, transactions, withdraw (pending)
-    leaderboard.js     rankings
-    admin.js           admin endpoints
-    users.js           profiles
-  migrations/          001–009, single schema source of truth
-  tests/               node:test suite (23 passing)
-frontend/
+frontend/          React + Vite app (Pi Browser)
   src/
-    App.jsx            login, bet flow, results
-    api.js             backend client
+    App.jsx            Skill-game flow (aim → release → score)
+    api.js             Backend API client
     components/
-      PlinkoBoard.jsx  canvas board + path animation
-      Wallet.jsx       balance + withdraw
-      Leaderboard.jsx  top winners
+      PlinkoBoard.jsx  Canvas board: point bins, target ring, aim marker, themes
+      Store.jsx        Drop packs + cosmetic themes (fixed-price Pi)
+      Leaderboard.jsx  Skill boards (points only)
+backend/           Express API (Node 20+)
+  server.js
+  config.js          Skill/drop/store tuning (no wager config)
+  routes/
+    auth.js        Pi sign-in (unchanged)
+    payments.js    Pi U2A approve/complete/reconcile (unchanged mechanics)
+    runs.js        Skill runs: start / submit / history (points only)
+    store.js       Fixed-price catalog + purchase grants
+    wallet.js      Drop inventory + themes + purchase history (no money)
+    leaderboard.js Skill leaderboards (points only)
+    users.js       Public player skill profiles
+    admin.js       Ops dashboard (skill metrics + moderation)
+    health.js
+  migrations/
+    010_skill_game.sql   skill_runs, skill_stats, drop_inventory, store_purchases
+db/tables/         Table definitions (skill_* additions)
 ```
 
-## Still TODO
+## Running it
 
-- **Pi Developer Portal**: register the app at `pi://develop.pi`,
-  complete the app checklist, serve `validation-key.txt` from the
-  frontend root for domain verification.
-- **Testnet end-to-end**: run the full loop (auth → payment →
-  settle → withdraw) in the Pi Browser sandbox with Test-Pi.
-- **Withdrawals**: wire the A2U `POST /payments` call in
-  `backend/routes/wallet.js` (marked TODO); keep it `pending`
-  until the Pi Platform confirms.
-- **Mainnet**: separate Portal app registration, KYC'd wallets,
-  real `PI_API_KEY` via a secrets manager.
-- **Policy**: this is a gambling dApp — Pi's app policies and
-  jurisdictional gambling law apply regardless of code quality.
-- Rotate the previously leaked `ADMIN_API_KEY` (see above).
+```bash
+# backend
+cd backend
+cp ../.env.example .env   # fill in DATABASE_URL, JWT_SECRET, PI_API_KEY
+npm install
+npm run db:migrate
+npm run dev
+
+# frontend
+cd frontend
+npm install
+npm run dev        # or: npm run build
+```
+
+Open the frontend in the Pi Browser (or desktop with the Pi SDK
+unavailable you'll get a notice). Set `VITE_API_URL` to point at the
+backend, and `VITE_PI_SANDBOX=true` for Test-Pi.
+
+## API summary (skill game)
+
+| Method | Path | Auth | What |
+|---|---|---|---|
+| POST | /api/v1/auth/login | no | Pi access token → session |
+| POST | /api/v1/runs/start | yes | consume 1 drop, get target bin |
+| POST | /api/v1/runs/submit | yes | submit path+bin+timing → points |
+| GET | /api/v1/runs | yes | run history |
+| GET | /api/v1/store/catalog | no | fixed-price items |
+| POST | /api/v1/store/purchase | yes | redeem completed Pi payment |
+| POST | /api/v1/payments/approve | yes | Pi U2A approval |
+| POST | /api/v1/payments/complete | yes | Pi U2A completion |
+| POST | /api/v1/payments/reconcile | yes | finish stranded payments |
+| GET | /api/v1/wallet | yes | drops, themes, purchases |
+| GET | /api/v1/leaderboard/top-scorers | no | skill board |
+| GET | /api/v1/leaderboard/best-streaks | no | skill board |
+| GET | /api/v1/leaderboard/sharpest-aim | no | skill board |
+
+## Security notes
+
+- Every Pi payment state change is verified against the Pi Platform
+  API with the server API key; the client is never trusted about
+  payment status.
+- One completed Pi payment grants exactly one store item
+  (row-locked, idempotent).
+- Run submissions are verified server-side: the bin is recomputed
+  from the submitted path, runs expire after 5 minutes, each run
+  scores once, and hourly caps + streak anomaly flags keep the
+  leaderboards honest.
+- Never commit a real `.env` — the October 2025 audit found a real
+  admin API key committed at the repo root; rotate it if it hasn't
+  been rotated since.
