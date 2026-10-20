@@ -15,8 +15,10 @@
  *   4. onReadyForServerCompletion(paymentId, txid)
  *        -> POST /payments/complete { paymentId, txid }
  *        -> server verifies the txid matches, then completes.
- *   5. POST /bets { paymentId, ... } settles the wager against
- *      the completed payment (1:1 link, enforced in bets.js).
+ *   5. POST /store/purchase { paymentId, itemId } redeems the
+ *      completed payment for a fixed-price store item (drop pack
+ *      or cosmetic theme) — 1:1 link, enforced in store.js.
+ *      Payments never fund wagers; there are no wagers.
  *
  * Recovery:
  *   Pi.authenticate(..., onIncompletePaymentFound) ->
@@ -332,7 +334,7 @@ router.post(
                 txid
             );
 
-        // 3. Mirror locally as completed: now usable by /bets.
+        // 3. Mirror locally as completed: now usable by /store/purchase.
         const row = await db.transaction(
             async (client) =>
                 upsertPayment(client, {
