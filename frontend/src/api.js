@@ -1,8 +1,9 @@
 /*
- * Plinko on Pi — backend API client.
+ * Plinko on Pi — backend API client (skill edition).
  *
- * The backend is the authority for everything: auth, payments,
- * bets, and verification. The client never computes outcomes.
+ * The backend is the authority for: auth, Pi payments, skill-run
+ * scoring, drop inventory, and the store. Points are scores only —
+ * they are never convertible to Pi or anything of value.
  */
 
 const API_BASE =
@@ -64,6 +65,8 @@ async function request(path, { method = "GET", body, headers } = {}) {
 }
 
 export const api = {
+  /* ---------- auth (Pi sign-in, unchanged) ---------- */
+
   login: (accessToken) =>
     request("/auth/login", {
       method: "POST",
@@ -72,8 +75,7 @@ export const api = {
 
   me: () => request("/auth/me"),
 
-  commitRound: () =>
-    request("/provably-fair/commit", { method: "POST" }),
+  /* ---------- Pi payments (fixed-price store purchases only) ---------- */
 
   approvePayment: (paymentId) =>
     request("/payments/approve", {
@@ -93,32 +95,42 @@ export const api = {
       body: { paymentId },
     }),
 
-  placeBet: ({ amount, rows, risk, roundId, clientSeed, paymentId }) =>
-    request("/bets", {
+  /* ---------- skill runs ---------- */
+
+  startRun: ({ dropX, rows, spread }) =>
+    request("/runs/start", {
+      method: "POST",
+      body: { dropX, rows, spread },
+    }),
+
+  submitRun: ({ runId, path, bin, releaseMs }) =>
+    request("/runs/submit", {
+      method: "POST",
+      body: { runId, path, bin, releaseMs },
+    }),
+
+  myRuns: (limit = 25) =>
+    request(`/runs?limit=${limit}`),
+
+  /* ---------- inventory ---------- */
+
+  inventory: () => request("/wallet"),
+
+  /* ---------- store (drop packs + cosmetic themes) ---------- */
+
+  catalog: () => request("/store/catalog"),
+
+  purchase: ({ itemId, paymentId }) =>
+    request("/store/purchase", {
       method: "POST",
       headers: {
         "Idempotency-Key": crypto.randomUUID(),
       },
-      body: { amount, rows, risk, roundId, clientSeed, paymentId },
+      body: { itemId, paymentId },
     }),
 
-  myBets: (limit = 25) =>
-    request(`/bets?limit=${limit}`),
+  /* ---------- leaderboards (points only) ---------- */
 
-  wallet: () => request("/wallet/balance"),
-
-  withdraw: (amount) =>
-    request("/wallet/withdraw", {
-      method: "POST",
-      headers: {
-        "Idempotency-Key": crypto.randomUUID(),
-      },
-      body: { amount, currency: "PI" },
-    }),
-
-  leaderboard: () =>
-    request("/leaderboard/top-winners"),
-
-  verifyGame: (gameId) =>
-    request(`/provably-fair/${gameId}`),
+  leaderboard: (board = "top-scorers") =>
+    request(`/leaderboard/${board}`),
 };
