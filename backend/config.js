@@ -332,22 +332,10 @@ const config = {
     },
 
     /* =====================================================
-     * Game
+     * Skill game (no wagering — points only)
      * ===================================================== */
 
     game: {
-        minWager:
-            getNumber(
-                "MIN_WAGER",
-                0.01
-            ),
-
-        maxWager:
-            getNumber(
-                "MAX_WAGER",
-                100
-            ),
-
         defaultRows:
             getInteger(
                 "DEFAULT_ROWS",
@@ -383,39 +371,64 @@ const config = {
             ),
     },
 
-    /* =====================================================
-     * Provably Fair
-     * ===================================================== */
-
-    provablyFair: {
-        algorithm:
-            getEnv(
-                "PROVABLY_FAIR_ALGORITHM",
-                "sha256"
-            ),
-
-        hmacAlgorithm:
-            getEnv(
-                "PROVABLY_FAIR_HMAC",
-                "sha256"
-            ),
-
-        serverSeed:
-            getEnv(
-                "SERVER_SEED",
-                ""
-            ),
-
-        seedRotationHours:
+    skill: {
+        /* Free drop inventory: cap + regen cadence. */
+        freeDropsCap:
             getInteger(
-                "SERVER_SEED_ROTATION_HOURS",
-                24
+                "SKILL_FREE_DROPS_CAP",
+                20
             ),
 
-        nonceStart:
+        freeDropRegenMinutes:
             getInteger(
-                "NONCE_START",
-                0
+                "SKILL_FREE_DROP_REGEN_MINUTES",
+                5
+            ),
+
+        /* Anti-spam / anti-fabrication throttle. */
+        maxRunsPerHour:
+            getInteger(
+                "SKILL_MAX_RUNS_PER_HOUR",
+                120
+            ),
+
+        /* A started run must be submitted within this window. */
+        runExpirySeconds:
+            getInteger(
+                "SKILL_RUN_EXPIRY_SECONDS",
+                300
+            ),
+
+        /* Timing-sweep duration (ms) for the release aim bonus. */
+        sweepMs:
+            getInteger(
+                "SKILL_SWEEP_MS",
+                2400
+            ),
+
+        defaultSpread:
+            getEnv(
+                "SKILL_DEFAULT_SPREAD",
+                "medium"
+            ),
+
+        /* Scoring knobs (percent of base bin points). */
+        targetBonusPct:
+            getNumber(
+                "SKILL_TARGET_BONUS_PCT",
+                50
+            ),
+
+        streakBonusPctPerLevel:
+            getNumber(
+                "SKILL_STREAK_BONUS_PCT_PER_LEVEL",
+                5
+            ),
+
+        aimBonusMaxPct:
+            getNumber(
+                "SKILL_AIM_BONUS_MAX_PCT",
+                25
             ),
     },
 
@@ -648,23 +661,6 @@ function validateConfig() {
     }
 
     if (
-        config.game.minWager <= 0
-    ) {
-        errors.push(
-            "MIN_WAGER must be greater than 0"
-        );
-    }
-
-    if (
-        config.game.maxWager <
-        config.game.minWager
-    ) {
-        errors.push(
-            "MAX_WAGER must be greater than or equal to MIN_WAGER"
-        );
-    }
-
-    if (
         config.game.minRows >
         config.game.maxRows
     ) {
@@ -698,14 +694,6 @@ function validateConfig() {
         ) {
             errors.push(
                 "JWT_SECRET must be at least 32 characters in production"
-            );
-        }
-
-        if (
-            !config.provablyFair.serverSeed
-        ) {
-            errors.push(
-                "SERVER_SEED is required in production"
             );
         }
 
@@ -792,14 +780,7 @@ function getSafeConfig() {
 
         game: config.game,
 
-        provablyFair: {
-            ...config.provablyFair,
-            serverSeed:
-                config.provablyFair
-                    .serverSeed
-                    ? "[configured]"
-                    : "[not configured]",
-        },
+        skill: config.skill,
 
         rateLimit:
             config.rateLimit,
