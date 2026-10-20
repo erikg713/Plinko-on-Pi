@@ -14,18 +14,27 @@ test("configuration module loads", () => {
     assert.ok(config.security);
 });
 
-test("game configuration has valid wager limits", () => {
+test("skill configuration has valid drop settings", () => {
     const config = require("../config");
 
     assert.ok(
-        config.game.minWager > 0,
-        "minimum wager must be greater than zero"
+        config.skill.freeDropsCap > 0,
+        "free drop cap must be greater than zero"
     );
 
     assert.ok(
-        config.game.maxWager >=
-            config.game.minWager,
-        "maximum wager must not be below minimum wager"
+        config.skill.freeDropRegenMinutes > 0,
+        "free drop regen cadence must be greater than zero"
+    );
+
+    assert.ok(
+        config.skill.maxRunsPerHour > 0,
+        "hourly run cap must be greater than zero"
+    );
+
+    assert.ok(
+        config.skill.runExpirySeconds > 0,
+        "run expiry must be greater than zero"
     );
 });
 
@@ -78,10 +87,5 @@ test("safe configuration does not expose secrets", () => {
     assert.notEqual(
         safe.pi?.apiKey,
         config.pi?.apiKey
-    );
-
-    assert.notEqual(
-        safe.provablyFair?.serverSeed,
-        config.provablyFair?.serverSeed
     );
 });
