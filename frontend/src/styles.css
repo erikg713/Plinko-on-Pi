@@ -208,3 +208,17 @@ canvas.plinko {
   margin-bottom: 12px;
   font-size: 14px;
 }
+
+/* Skill-game additions */
+
+.score-line {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+.streak {
+  color: var(--gold, #ffd166);
+  font-size: 15px;
+  font-weight: 600;
+}
