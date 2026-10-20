@@ -193,7 +193,7 @@ test("game API routes are mounted behind auth", async () => {
     for (
         const path of
         [
-            "/api/v1/bets",
+            "/api/v1/runs",
             "/api/v1/payments",
             "/api/v1/wallet",
         ]
@@ -212,31 +212,14 @@ test("game API routes are mounted behind auth", async () => {
     }
 });
 
-test("provably-fair verify endpoint is public", async () => {
+test("store catalog is public and lists fixed-price items", async () => {
     const app =
         createApp();
 
     const response =
         await request(
             app,
-            {
-                path: "/api/v1/provably-fair/verify",
-                method: "POST",
-                body: JSON.stringify(
-                    {
-                        serverSeed: "a".repeat(64),
-                        serverSeedHash: "b".repeat(64),
-                        clientSeed: "c".repeat(16),
-                        nonce: 1,
-                        rows: 8,
-                        path: "LRLRLRLR",
-                    }
-                ),
-                headers: {
-                    "content-type":
-                        "application/json",
-                },
-            }
+            { path: "/api/v1/store/catalog" }
         );
 
     assert.equal(
@@ -249,10 +232,73 @@ test("provably-fair verify endpoint is public", async () => {
             response.body
         );
 
-    assert.equal(
-        typeof body.data.valid,
-        "boolean"
+    assert.ok(
+        Array.isArray(body.data)
     );
+    assert.ok(
+        body.data.length > 0
+    );
+
+    for (const item of body.data) {
+        assert.ok(item.id);
+        assert.ok(item.pricePi > 0);
+        // The store sells drops and cosmetics only — never wagers.
+        assert.ok(
+            ["drops", "theme"].includes(item.kind)
+        );
+    }
+});
+
+test("store purchase requires auth", async () => {
+    const app =
+        createApp();
+
+    const response =
+        await request(
+            app,
+            {
+                path: "/api/v1/store/purchase",
+                method: "POST",
+                body: JSON.stringify(
+                    {
+                        itemId: "drop_pack_10",
+                        paymentId: "nope",
+                    }
+                ),
+                headers: {
+                    "content-type":
+                        "application/json",
+                },
+            }
+        );
+
+    assert.equal(
+        response.status,
+        401
+    );
+});
+
+test("wager routes are gone", async () => {
+    const app =
+        createApp();
+
+    for (const path of ["/api/v1/bets", "/api/v1/provably-fair/verify"]) {
+        const response = await request(
+            app,
+            {
+                path,
+                method: "POST",
+                body: JSON.stringify({}),
+                headers: { "content-type": "application/json" },
+            }
+        );
+
+        assert.equal(
+            response.status,
+            404,
+            `expected 404 for removed route ${path}`
+        );
+    }
 });
 
 test("unknown route returns 404 JSON", async () => {
